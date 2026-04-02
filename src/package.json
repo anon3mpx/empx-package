@@ -1,0 +1,52 @@
+{
+  "name": "empx-sdk",
+  "version": "1.0.0",
+  "description": "Multi-chain DEX router SDK for finding optimal swap paths across PulseChain, BSC, Arbitrum, Base, Polygon, Avalanche, and Optimism.",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "require": "./index.js",
+      "default": "./index.js"
+    }
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "router.js",
+    "chains/",
+    "core/",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "npm pack --dry-run --cache ./.npm-cache",
+    "prepublishOnly": "npm run build",
+    "test": "node tests/testPathFind.js",
+    "test:base:tx": "node tests/testBaseCalldataTx.js",
+    "test:quote": "node tests/testQuote.js",
+    "test:nosplit": "node tests/testNoSplit.js"
+  },
+  "keywords": [
+    "defi",
+    "dex",
+    "swap",
+    "router",
+    "pulsechain",
+    "bsc",
+    "arbitrum",
+    "base",
+    "polygon",
+    "avalanche",
+    "optimism",
+    "multi-chain"
+  ],
+  "author": "EmpX",
+  "license": "MIT",
+  "peerDependencies": {
+    "ethers": "^6.0.0"
+  },
+  "devDependencies": {
+    "ethers": "^6.16.0"
+  }
+}

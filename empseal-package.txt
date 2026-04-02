@@ -1,0 +1,292 @@
+empseal-package
+
+
+
+function getSwapNoSplitWrapCalldata(trade, userAddress, ERC20_ABI) {
+    try {
+        if (!isAddress(userAddress)) {
+            throw new Error("Invalid userAddress: Must be a valid Ethereum address");
+        }
+
+        return getCalldata(ERC20_ABI, WPLS_ADDRESS, "deposit", [], trade.amountIn); // `deposit()` function has no arguments
+    } catch (error) {
+        console.error("Error in getSwapNoSplitWrapCalldata:", error.message);
+        throw error;
+    }
+}
+
+// Generates calldata for unwrapping WPLS to PLS (withdraw)
+
+function getSwapNoSplitUnwrapCalldata(trade, userAddress, ERC20_ABI) {
+    try {
+        if (!isAddress(userAddress)) {
+            throw new Error("Invalid userAddress: Must be a valid Ethereum address");
+        }
+
+        return getCalldata(ERC20_ABI, WPLS_ADDRESS, "withdraw", [BigInt(trade.amountIn)]); // `withdraw(amount)` burns WPLS to release PLS
+    } catch (error) {
+        console.error("Error in getSwapNoSplitUnwrapCalldata:", error.message);
+        throw error;
+    }
+}
+
+______________________________________________________________________________________________________________________________________
+
+
+# Empseal Router Package (PulseChain)
+
+## Overview
+The **Empseal Router Package** helps users find the best swap routes on PulseChain. This package retrieves optimal trading paths across various DEXs, ensuring the most efficient swaps.
+
+## Features
+- Finds the best swap route for given token pairs.
+- Supports both ERC-20 tokens and Native PLS.
+- Returns gas estimates for swaps.
+- Uses a lightweight `ethers.js` integration.
+
+## Installation
+```sh
+npm install empseal-router
+```
+
+## Usage
+### Importing the Package
+```javascript
+const { findBestPath, getSwapNoSplitCalldata, getSwapNoSplitFromPLSCalldata, getSwapNoSplitToPLSCalldata } = require("empseal-router");
+```
+
+### Finding the Best Path
+```javascript
+async function main() {
+    const amountIn = "1000000000000000000"; // 1 Token (assuming 18 decimals)
+    const tokenIn = "0x95B303987A60C71504D99Aa1b13B4DA07b0790ab"; // Example address
+    const tokenOut = "0xA1077a294dDE1B09bB078844df40758a5D0f9a27"; 
+    const maxSteps = 3; // We recommend using 3 steps, limit is from 1 to 4
+
+    try {
+        const result = await findBestPath(amountIn, tokenIn, tokenOut, maxSteps);
+        console.log("Best path:", result);
+    } catch (error) {
+        console.error("Error finding path:", error);
+    }
+}
+
+main();
+```
+
+### Example Response
+```json
+{
+    "amounts": ["1000000000000000000", "980000000000000000"],
+    "path": ["0x95B303987A60C71504D99Aa1b13B4DA07b0790ab", "0xA1077a294dDE1B09bB078844df40758a5D0f9a27"],
+    "adapters": ["0x1234567890123456789012345678901234567890"]
+}
+```
+
+### Gather tradeInfo
+```javascript
+const tradeInfo = {
+    amountIn: result.amounts[0],
+    amountOut: (result.amounts[result.amounts.length -1] * BigInt(98) / BigInt(100)),
+    amounts: result.amounts,
+    path: result.path,
+    adapters: result.adapters,
+};
+```
+
+### Get Call Data for Swaps
+Once trade information is obtained, integrators can use the following functions to get calldata for executing swaps:
+
+```javascript
+const { getSwapNoSplitCalldata, getSwapNoSplitFromPLSCalldata, getSwapNoSplitToPLSCalldata } = require("empseal-router");
+
+const userAddress = "0xYourWalletAddressHere";
+const abi = ROUTER_ABI; // Ensure you have the correct ABI
+
+const calldataSwap = getSwapNoSplitCalldata(tradeInfo, userAddress, abi);
+const calldataSwapFromPLS = getSwapNoSplitFromPLSCalldata(tradeInfo, userAddress, abi);
+const calldataSwapToPLS = getSwapNoSplitToPLSCalldata(tradeInfo, userAddress, abi);
+```
+
+### Sending Transactions
+After getting the calldata, integrators can use `ethers.js` or their preferred library to send the transaction:
+
+#### Example using `ethers.js`
+```javascript
+const { ethers } = require("ethers");
+const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+const contract = new ethers.Contract(ROUTER_ADDRESS, ROUTER_ABI, signer);
+
+async function executeSwap(calldata, value = "0") {
+    try {
+        const tx = await contract.sendTransaction({
+            to: ROUTER_ADDRESS,
+            data: calldata,
+            value: ethers.BigNumber.from(value)
+        });
+        await tx.wait();
+        console.log("Transaction successful:", tx.hash);
+    } catch (error) {
+        console.error("Transaction failed:", error);
+    }
+}
+
+executeSwap(calldataSwap);
+```
+
+## Configuration
+The package includes predefined constants for PulseChain addresses:
+
+### Constants
+```javascript
+const {
+    ROUTER_ADDRESS,
+    NATIVE_PLS_ADDRESS,
+    WPLS_ADDRESS
+} = require("empseal-router");
+```
+
+### Explanation
+| Constant | Value |
+|----------|-------|
+| `ROUTER_ADDRESS` | Address of the router contract |
+| `NATIVE_PLS_ADDRESS` | Address representing Native PLS (0x0000...0000) |
+| `WPLS_ADDRESS` | Wrapped PLS Address |
+
+## Advanced Usage
+### Finding the Best Path for Native PLS
+To find a swap route for Native PLS, use `NATIVE_PLS_ADDRESS` in place of the input or output token:
+```javascript
+const result = await findBestPath(amountIn, NATIVE_PLS_ADDRESS, tokenOut, maxSteps);
+```
+
+## Testing
+To run the test script:
+```sh
+node testPathFind.js
+```
+
+## Contributing
+We welcome contributions! Please submit an issue or pull request on GitHub.
+
+## License
+MIT
+
+
+
+# Empseal Router Package (PulseChain)
+
+## Overview
+The **Empseal Router Package** helps users find the best swap routes on PulseChain. This package retrieves optimal trading paths across various DEXs, ensuring the most efficient swaps.
+
+## Features
+- Finds the best swap route for given token pairs.
+- Supports both ERC-20 tokens and Native PLS.
+- Returns gas estimates for swaps.
+- Uses a lightweight `ethers.js` integration.
+
+## Installation
+```sh
+npm install empseal-router
+```
+
+## Usage
+### Importing the Package
+```javascript
+const { findBestPath } = require("empseal-router");
+```
+
+### Finding the Best Path
+```javascript
+async function main() {
+    const amountIn = "1000000000000000000"; // 1 Token (assuming 18 decimals)
+    const tokenIn = "0x95B303987A60C71504D99Aa1b13B4DA07b0790ab"; // Example address
+    const tokenOut = "0xA1077a294dDE1B09bB078844df40758a5D0f9a27"; 
+    const maxSteps = 3; // We recommend using 3 steps, limit is from 1 to 4
+
+    try {
+        const result = await findBestPath(amountIn, tokenIn, tokenOut, maxSteps);
+        console.log("Best path:", result);
+    } catch (error) {
+        console.error("Error finding path:", error);
+    }
+}
+
+main();
+```
+
+### Example Response
+```json
+{
+    "amounts": ["1000000000000000000", "980000000000000000"],
+    "path": ["0x95B303987A60C71504D99Aa1b13B4DA07b0790ab", "0xA1077a294dDE1B09bB078844df40758a5D0f9a27"],
+    "adapters": ["0x1234567890123456789012345678901234567890"]
+}
+```
+
+### Gather tradeInfo
+```javascript
+const tradeInfo = {
+    amountIn: result.amounts[0],
+    amountOut: (result.amounts[result.amounts.length -1] * BigInt(98) / BigInt(100)), // 2% slippage buffer
+    amounts: result.amounts,
+    path: result.path,
+    adapters: result.adapters,
+};
+```
+Collect the trade information to send to writeContract functions like `swapNoSplit`, `swapNoSplitFromPLS`, `swapNoSplitToPLS`.
+
+> **Important Note:** Before calling the swap functions, the integrator must ensure that the user has approved the router contract to spend the necessary amount of tokens. This can be done using the `approve` function on the ERC-20 token contract.
+
+## Configuration
+The package includes predefined constants for PulseChain addresses:
+
+### Constants
+```javascript
+const {
+    ROUTER_ADDRESS,
+    NATIVE_PLS_ADDRESS,
+    WPLS_ADDRESS
+} = require("empseal-router");
+```
+
+### Explanation
+| Constant | Value |
+|----------|-------|
+| `ROUTER_ADDRESS` | Address of the router contract |
+| `NATIVE_PLS_ADDRESS` | Address representing Native PLS (0x0000...0000) |
+| `WPLS_ADDRESS` | Wrapped PLS Address |
+
+## Advanced Usage
+### Finding the Best Path for Native PLS
+To find a swap route for Native PLS, use `NATIVE_PLS_ADDRESS` in place of the input or output token:
+```javascript
+const result = await findBestPath(amountIn, NATIVE_PLS_ADDRESS, tokenOut, maxSteps);
+```
+
+## Testing
+To run the test script:
+```sh
+node testPathFind.js
+```
+
+## Contributing
+We welcome contributions! Please submit an issue or pull request on GitHub.
+
+## License
+MIT
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

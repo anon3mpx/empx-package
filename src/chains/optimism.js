@@ -1,0 +1,58 @@
+// ─── Optimism (Chain ID: 10) ──────────────────────────────────────────────────
+
+const { ETH_ROUTER_ABI } = require("../core/abi");
+
+module.exports = {
+  chainId: 10,
+  name: "Optimism",
+
+  routerAbi: ETH_ROUTER_ABI,
+
+  nativeSwapFns: {
+    fromNative: "swapNoSplitFromETH",
+    toNative: "swapNoSplitToETH",
+  },
+
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+
+  rpcUrl: "https://mainnet.optimism.io",
+
+  ROUTER_ADDRESS: "0x165C3410fC91EF562C50559f7d2289fEbed552d9",
+  NATIVE_ADDRESS: "0x0000000000000000000000000000000000000000",
+  WRAPPED_NATIVE: "0x4200000000000000000000000000000000000006", // WETH
+
+  USD_STABLE: "0x0b2c639c533813f4aa9d7837caf62653d097ff85", // USDC on Optimism
+  USD_STABLE_DECIMALS: 6,
+
+  STABLE_TOKENS: [
+    "0x0b2c639c533813f4aa9d7837caf62653d097ff85", // USDC
+    "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58", // USDT
+    "0x7f5c764cbc14f9669b88837ca1490cca17c31607", // USDC.e
+    "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1", // DAI
+  ],
+
+  TRUSTED_TOKENS: [
+    "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
+    "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58",
+    "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1",
+    "0xcb8fa9a76b8e203d8c3797bf438d8fb81ea3326a",
+    "0x4200000000000000000000000000000000000006",
+    "0x68f180fcce6836688e9084f035309e29bf0a2095",
+    "0x4200000000000000000000000000000000000042",
+    "0x8c6f28f2f1a3c87f0f938b96d27520d9751ec8d9",
+    "0x9560e827af36c94d2ac33a39bce1fe78631088db",
+    "0xc52d7f23a2e460248db6ee192cb23dd12bddcbf6",
+    "0x0994206dfe8de6ec6920ff4d779b0d950605fb53",
+  ],
+
+  ADAPTERS: [
+    "0x21e1a9261a7E1050D34Db82BB67dEa80c5D4c0bC",
+    "0x7F76c13d61AB4F9F7902c255A52a1Dae6c434afB",
+    "0xC827913F0556a74BF9589d7ba7434cfE1Be2a62b",
+    "0xae0aF43cf60640C1b08CCDE447F231Af02770C88",
+    "0x7F5713bcF5198a1D1045DDd79d2952317FE3846E",
+    "0x9293cB3DeC942C9F0a76d1c9131D923d2713a1F6",
+    "0xa8E3e938d0c3876595BA1d77d0fD2C18D170827d",
+    "0x164327dfF74CfDFe092Af81265eF11396d4135Cd",
+  ],
+};

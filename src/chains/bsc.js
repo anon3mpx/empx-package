@@ -1,0 +1,64 @@
+// ─── BNB Smart Chain (Chain ID: 56) ───────────────────────────────────────────
+
+const { ETH_ROUTER_ABI } = require("../core/abi");
+const { USD_STABLE } = require("./pulsechain");
+
+module.exports = {
+  chainId: 56,
+  name: "BNB Smart Chain",
+
+  routerAbi: ETH_ROUTER_ABI,
+
+  nativeSwapFns: {
+    fromNative: "swapNoSplitFromETH",
+    toNative: "swapNoSplitToETH",
+  },
+
+  nativeCurrency: { name: "BNB", symbol: "BNB", decimals: 18 },
+
+  rpcUrl: "https://bsc-dataseed1.binance.org",
+
+  ROUTER_ADDRESS: "0x7b9637C7c8Aa45B679eEdBb4b680642410322df1",
+  NATIVE_ADDRESS: "0x0000000000000000000000000000000000000000",
+  WRAPPED_NATIVE: "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c", // WBNB
+
+  USD_STABLE: "0x55d398326f99059ff775485246999027b3197955", // USDT on BSC
+  USD_STABLE_DECIMALS: 18,
+
+  STABLE_TOKENS: [
+    "0x55d398326f99059ff775485246999027b3197955", // USDT
+    "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d", // USDC
+    "0xe9e7cea3dedca5984780bafc599bd69add087d56", // BUSD
+  ],
+
+  TRUSTED_TOKENS: [
+    "0x55d398326f99059ff775485246999027b3197955",
+    "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c",
+    "0xe9e7cea3dedca5984780bafc599bd69add087d56",
+    "0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82",
+    "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d",
+    "0x2170ed0880ac9a755fd29b2688956bd959f933f8",
+    "0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c",
+    "0xf4c8e32eadec4bfe97e0f595add0f4450a863a11",
+  ],
+
+  ADAPTERS: [
+    "0x6cbdA053431a11A6771D74bF272d66904207dfD1",
+    "0x86EB63780e1b59146148CD58699B7Bb6dc2f8805",
+    "0x7307FEE834DdC88A716904830C0cb356A4878be1",
+    "0xF1c5241FaEFC0dB9B9333D9E2196e992a20dFD3d",
+    "0xcbe7b1C7Ad642a5FbEc9d86929C8e13fe04aAaCa",
+    "0x1f5C42FCd0940692d4be52d17CD6bbFDFac9b0ac",
+    "0xb46dF4687B7F5d30B982fA6854D8FbB8A4D89132",
+    "0x1D135C2711f89e6eb70665BF55942E498835b336",
+    "0xCd23897513A5b7925761e8c63Da9203848C7e975",
+    "0x626c6B8fb441c891F17D972fF1246B10e5634615",
+    "0x8bea9826456AB283a17C6244141691670ae86A34",
+    "0x1aAe94A372f20271B6b2919d3890Dc5583e091aC",
+    "0x83BE9b7b17b9600Cb369ED7062F4980D5a2f6cDB",
+    "0xA285098184932DA9AAa8F8B4895B93FdeeeC07a2",
+    "0x1D64595c11a4727551Cc11d12D2f7239A64e15F0",
+    "0xb0e99628d884b3f45a312BCFD7A2505Cd711b657",
+    "0xb018d450eCE36a9B4cb6ea620C8C361F25749874",
+  ],
+};
