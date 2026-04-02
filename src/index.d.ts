@@ -89,17 +89,16 @@ export interface EmpSealRouter {
         tokenIn: string,
         tokenOut: string,
         maxSteps?: number,
-        slippageBps?: number,
-        protocolFeeBps?: string | number | bigint
+        slippageBps?: number
     ): Promise<TradeInfo>;
 
     // Allowance
     checkAllowance(tokenAddress: string, ownerAddress: string, requiredAmount: string | bigint): Promise<AllowanceResult>;
 
     // Calldata builders
-    getSwapCalldata(tradeInfo: TradeInfo, toAddress: string, protocolFeeBps?: string | number | bigint): CalldataResult;
-    getSwapFromNativeCalldata(tradeInfo: TradeInfo, toAddress: string, protocolFeeBps?: string | number | bigint): CalldataResult;
-    getSwapToNativeCalldata(tradeInfo: TradeInfo, toAddress: string, protocolFeeBps?: string | number | bigint): CalldataResult;
+    getSwapCalldata(tradeInfo: TradeInfo, toAddress: string): CalldataResult;
+    getSwapFromNativeCalldata(tradeInfo: TradeInfo, toAddress: string): CalldataResult;
+    getSwapToNativeCalldata(tradeInfo: TradeInfo, toAddress: string): CalldataResult;
     getWrapCalldata(tradeInfo: Pick<TradeInfo, "amountIn">): CalldataResult;
     getUnwrapCalldata(tradeInfo: Pick<TradeInfo, "amountIn">): CalldataResult;
     getApprovalCalldata(tokenAddress: string, amount?: string | bigint): CalldataResult;
@@ -111,8 +110,7 @@ export interface EmpSealRouter {
         tokenOut: string,
         toAddress: string,
         maxSteps?: number,
-        slippageBps?: number,
-        protocolFeeBps?: string | number | bigint
+        slippageBps?: number
     ): Promise<SwapResult>;
 
     // Price quotes
@@ -149,6 +147,7 @@ export declare function createRouter(chainId: number, provider?: string | Provid
 export declare function getChainConfig(chainId: number): ChainInfo;
 export declare function getAllChains(): ChainInfo[];
 export declare function getSupportedChainIds(): number[];
+export declare function getProtocolFeeBps(): string;
 
 export declare const CHAINS: Record<number, ChainConfig>;
 export declare const BASE_ROUTER_ABI: object[];

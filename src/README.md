@@ -2,6 +2,26 @@
 
 Multi-chain DEX router package. Finds optimal no-split swap paths, builds transaction calldata, and returns USD price quotes from a single unified API.
 
+## AI Automation Integration
+
+Use this SDK in deterministic agent/automation flows:
+
+1. Create router once per chain: `createRouter(chainId, providerOrRpc)`.
+2. Build trade deterministically: `getTradeInfo(...)` (set explicit `maxSteps`, `slippageBps`).
+3. Build calldata only: `swap(...)` or specific calldata builders.
+4. Execute externally in your signer/runtime.
+
+Recommended machine-output payload shape:
+
+```json
+{
+  "chainId": 143,
+  "swapType": "ERC20ToERC20",
+  "tradeInfo": { "amountIn": "...", "amountOut": "...", "fee": "28" },
+  "calldata": { "to": "0x...", "data": "0x...", "value": "0" }
+}
+```
+
 ## Supported Chains
 
 | Chain       | Chain ID | Native Token |
@@ -32,10 +52,13 @@ npm install empx-sdk
 ## Quick Start
 
 ```javascript
-const { createRouter, CHAIN_IDS } = require("empx-sdk");
+const { createRouter, CHAIN_IDS, getProtocolFeeBps } = require("empx-sdk");
 
 // Create a router scoped to a chain
 const router = createRouter(CHAIN_IDS.PULSECHAIN);
+
+// Read current SDK protocol fee (bps)
+console.log(getProtocolFeeBps()); // "28"
 
 // Find best path + get tradeInfo in one call
 const tradeInfo = await router.getTradeInfo(
@@ -43,8 +66,7 @@ const tradeInfo = await router.getTradeInfo(
     "0xTokenInAddress",
     "0xTokenOutAddress",
     3,   // maxSteps (1–4, recommend 3)
-    200, // slippage in basis points (200 = 2%)
-    28   // protocol fee in bps (28 = 0.28%, min router fee: 9)
+    200  // slippage in basis points (200 = 2%)
 );
 
 // Build swap calldata
@@ -94,6 +116,16 @@ CHAIN_IDS.BERACHAIN   // 80094
 CHAIN_IDS.ROOTSTOCK   // 30
 ```
 
+### Protocol Fee (Read-Only)
+
+Protocol fee is managed inside the SDK and applied automatically during trade building and calldata generation.
+
+```javascript
+const { getProtocolFeeBps } = require("empx-sdk");
+
+console.log(getProtocolFeeBps()); // "28"
+```
+
 ---
 
 ## Path Finding
@@ -128,7 +160,7 @@ const result = await router.findBestPath(
 );
 ```
 
-### router.getTradeInfo(amountIn, tokenIn, tokenOut, maxSteps?, slippageBps?, protocolFeeBps?)
+### router.getTradeInfo(amountIn, tokenIn, tokenOut, maxSteps?, slippageBps?)
 
 Finds best path and returns a `tradeInfo` object with slippage already applied — ready to pass directly into calldata builders.
 
@@ -138,8 +170,7 @@ const tradeInfo = await router.getTradeInfo(
     "0xTokenIn",
     "0xTokenOut",
     3,   // maxSteps (default: 3)
-    200, // slippageBps (default: 200 = 2%)
-    28   // protocolFeeBps (default: 28 = 0.28%, min: 9)
+    200  // slippageBps (default: 200 = 2%)
 );
 
 // tradeInfo:
@@ -203,7 +234,7 @@ await signer.sendTransaction(calldata);
 
 ### Auto-swap (recommended)
 
-Detects native vs ERC-20 automatically and returns the right calldata type:
+Detects native/wrapped/native-ERC20 cases automatically and returns the right calldata type:
 
 ```javascript
 const { tradeInfo, calldata, swapType } = await router.swap(
@@ -212,11 +243,10 @@ const { tradeInfo, calldata, swapType } = await router.swap(
     tokenOut,
     "0xRecipient",
     3,    // maxSteps
-    200,  // slippageBps
-    28    // protocolFeeBps (0.28%)
+    200   // slippageBps
 );
 
-console.log(swapType); // "ERC20ToERC20" | "NativeToERC20" | "ERC20ToNative"
+console.log(swapType); // "WrapNative" | "UnwrapNative" | "ERC20ToERC20" | "NativeToERC20" | "ERC20ToNative"
 await signer.sendTransaction(calldata);
 ```
 
@@ -314,12 +344,13 @@ Each router exposes its full chain config at `router.chain`:
 const router = createRouter(CHAIN_IDS.ARBITRUM);
 
 router.chain.chainId          // 42161
-router.chain.name             // "Arbitrum One"
+router.chain.name             // "Arbitrum"
 router.chain.ROUTER_ADDRESS   // "0x..."
 router.chain.NATIVE_ADDRESS   // "0x000...000"
 router.chain.WRAPPED_NATIVE   // "0x82aF..." (WETH on Arbitrum)
-router.chain.USD_STABLE       // "0xFd08..." (USDT on Arbitrum)
-router.chain.LIQUIDITY_TOKENS // [...] high-liquidity tokens for routing
+router.chain.USD_STABLE       // "0xaf88..." (USDC on Arbitrum)
+router.chain.STABLE_TOKENS    // [...] stable references
+router.chain.TRUSTED_TOKENS   // [...] routing tokens
 ```
 
 You can also access chain configs directly:
@@ -328,8 +359,8 @@ You can also access chain configs directly:
 const { getChainConfig, getAllChains, getSupportedChainIds } = require("empx-sdk");
 
 getChainConfig(369);       // PulseChain config object
-getAllChains();             // All 7 chain configs
-getSupportedChainIds();    // [369, 56, 42161, 8453, 137, 43114, 10]
+getAllChains();            // All supported chain configs
+getSupportedChainIds();    // All supported chain IDs
 ```
 
 ---

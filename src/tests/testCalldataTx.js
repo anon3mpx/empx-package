@@ -13,7 +13,6 @@
 //   RECIPIENT="0x..."
 //   MAX_STEPS="3"
 //   SLIPPAGE_BPS="200"
-//   PROTOCOL_FEE_BPS="28"
 //   EXECUTE_TX="false"
 //   PRIVATE_KEY="0x..."
 //   AUTO_APPROVE="false"
@@ -21,7 +20,7 @@
 const fs = require("fs");
 const path = require("path");
 const { ethers, isAddress } = require("ethers");
-const { createRouter, CHAIN_IDS } = require("..");
+const { createRouter, CHAIN_IDS, getProtocolFeeBps } = require("..");
 
 function loadEnvFile(filePath) {
     if (!fs.existsSync(filePath)) return;
@@ -61,7 +60,6 @@ const TEST_CONFIG = {
     RECIPIENT:        process.env.RECIPIENT        || "0xRecipientAddressHere",
     MAX_STEPS:        Number(process.env.MAX_STEPS || 3),
     SLIPPAGE_BPS:     Number(process.env.SLIPPAGE_BPS || 200),
-    PROTOCOL_FEE_BPS: process.env.PROTOCOL_FEE_BPS || "28",
 };
 
 const TARGET_CHAIN_ID = Number(process.env.TARGET_CHAIN_ID || CHAIN_IDS.BASE);
@@ -114,6 +112,7 @@ async function main() {
     console.log("TokenOut:", tokenOut);
     console.log("AmountIn(raw):", amountIn);
     console.log("Recipient:", recipient);
+    console.log("Protocol fee (bps):", getProtocolFeeBps());
     console.log("Execute tx:", EXECUTE_TX);
 
     const tradeInfo = await router.getTradeInfo(
@@ -121,8 +120,7 @@ async function main() {
         tokenIn,
         tokenOut,
         TEST_CONFIG.MAX_STEPS,
-        TEST_CONFIG.SLIPPAGE_BPS,
-        TEST_CONFIG.PROTOCOL_FEE_BPS
+        TEST_CONFIG.SLIPPAGE_BPS
     );
 
     let calldata;
@@ -191,6 +189,6 @@ async function main() {
 }
 
 main().catch((err) => {
-    console.error("Base calldata test failed:", err.message);
+    console.error("Calldata tx test failed:", err.message);
     process.exitCode = 1;
 });

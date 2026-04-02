@@ -20,6 +20,9 @@ pnpm-debug.log*
 .env
 .env.*
 
+# Local mount/output artifacts
+src/mnt/
+
 # Coverage
 coverage/
 .nyc_output/

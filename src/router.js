@@ -4,6 +4,7 @@
 const { ethers } = require("ethers");
 const { getChainConfig } = require("./chains");
 const { findBestPath } = require("./core/pathfinder");
+const { getProtocolFeeBps } = require("./core/protocolFee");
 const {
     getSwapCalldata,
     getSwapFromNativeCalldata,
@@ -20,9 +21,6 @@ const {
     getTokenSymbol,
 } = require("./core/quotes");
 const { ERC20_ABI } = require("./core/abi");
-
-const DEFAULT_PROTOCOL_FEE_BPS = BigInt(28); // 0.28%
-const MIN_PROTOCOL_FEE_BPS = BigInt(9);      // router MIN_FEE
 
 /**
  * Creates a router instance scoped to a specific chain.
@@ -56,16 +54,6 @@ function createRouter(chainId, provider) {
      * Wraps a raw findBestPath result in a tradeInfo object with slippage applied.
      * gasEstimate is passed through from the on-chain router response.
      */
-    function normalizeProtocolFee(protocolFeeBps) {
-        const fee = BigInt(protocolFeeBps ?? DEFAULT_PROTOCOL_FEE_BPS);
-        if (fee < MIN_PROTOCOL_FEE_BPS) {
-            throw new Error(
-                `protocol fee cannot be below router min fee (${MIN_PROTOCOL_FEE_BPS.toString()}). Received: ${fee.toString()}`
-            );
-        }
-        return fee.toString();
-    }
-
     function applyProtocolFee(amountIn, protocolFeeBps) {
         const amount = BigInt(amountIn);
         const fee = BigInt(protocolFeeBps);
@@ -106,7 +94,7 @@ function createRouter(chainId, provider) {
         return {
             amountIn:    originalAmountIn.toString(),
             amountOut:   amountOut.toString(),
-            fee:         normalizeProtocolFee(protocolFeeBps),
+            fee:         protocolFeeBps.toString(),
             amounts:     pathResult.amounts,
             path:        pathResult.path,
             adapters:    pathResult.adapters,
@@ -165,7 +153,6 @@ function createRouter(chainId, provider) {
          * @param {string}        tokenOut
          * @param {number}        [maxSteps=3]
          * @param {number}        [slippageBps=200]  - 200 = 2%
-         * @param {string|number|bigint} [protocolFeeBps=28] - 28 = 0.28%
          * @returns {Promise<{
          *   amountIn:    string,
          *   amountOut:   string,
@@ -176,8 +163,8 @@ function createRouter(chainId, provider) {
          *   gasEstimate: string
          * }>}
          */
-        async getTradeInfo(amountIn, tokenIn, tokenOut, maxSteps = 3, slippageBps = 200, protocolFeeBps = DEFAULT_PROTOCOL_FEE_BPS) {
-            const normalizedFee = normalizeProtocolFee(protocolFeeBps);
+        async getTradeInfo(amountIn, tokenIn, tokenOut, maxSteps = 3, slippageBps = 200) {
+            const normalizedFee = getProtocolFeeBps();
             const effectiveAmountIn = applyProtocolFee(amountIn, normalizedFee);
 
             if (effectiveAmountIn <= BigInt(0)) {
@@ -218,11 +205,10 @@ function createRouter(chainId, provider) {
          *
          * @param {object} tradeInfo
          * @param {string} toAddress
-         * @param {string|number|bigint} [protocolFeeBps=28]
          * @returns {{ to: string, data: string, value: string }}
          */
-        getSwapCalldata(tradeInfo, toAddress, protocolFeeBps) {
-            return getSwapCalldata(tradeInfo, toAddress, chainConfig, protocolFeeBps);
+        getSwapCalldata(tradeInfo, toAddress) {
+            return getSwapCalldata(tradeInfo, toAddress, chainConfig);
         },
 
         /**
@@ -234,11 +220,10 @@ function createRouter(chainId, provider) {
          *
          * @param {object} tradeInfo
          * @param {string} toAddress
-         * @param {string|number|bigint} [protocolFeeBps=28]
          * @returns {{ to: string, data: string, value: string }}
          */
-        getSwapFromNativeCalldata(tradeInfo, toAddress, protocolFeeBps) {
-            return getSwapFromNativeCalldata(tradeInfo, toAddress, chainConfig, protocolFeeBps);
+        getSwapFromNativeCalldata(tradeInfo, toAddress) {
+            return getSwapFromNativeCalldata(tradeInfo, toAddress, chainConfig);
         },
 
         /**
@@ -250,11 +235,10 @@ function createRouter(chainId, provider) {
          *
          * @param {object} tradeInfo
          * @param {string} toAddress
-         * @param {string|number|bigint} [protocolFeeBps=28]
          * @returns {{ to: string, data: string, value: string }}
          */
-        getSwapToNativeCalldata(tradeInfo, toAddress, protocolFeeBps) {
-            return getSwapToNativeCalldata(tradeInfo, toAddress, chainConfig, protocolFeeBps);
+        getSwapToNativeCalldata(tradeInfo, toAddress) {
+            return getSwapToNativeCalldata(tradeInfo, toAddress, chainConfig);
         },
 
         /**
@@ -304,14 +288,13 @@ function createRouter(chainId, provider) {
          * @param {string}        toAddress     - Recipient of output tokens
          * @param {number}        [maxSteps=3]
          * @param {number}        [slippageBps=200]
-         * @param {string|number|bigint} [protocolFeeBps=28]
          * @returns {Promise<{
          *   tradeInfo: object,
          *   calldata:  { to: string, data: string, value: string },
          *   swapType:  "WrapNative" | "UnwrapNative" | "NativeToERC20" | "ERC20ToNative" | "ERC20ToERC20"
          * }>}
          */
-        async swap(amountIn, tokenIn, tokenOut, toAddress, maxSteps = 3, slippageBps = 200, protocolFeeBps = DEFAULT_PROTOCOL_FEE_BPS) {
+        async swap(amountIn, tokenIn, tokenOut, toAddress, maxSteps = 3, slippageBps = 200) {
             const isNativeIn  = tokenIn.toLowerCase()  === chainConfig.NATIVE_ADDRESS.toLowerCase();
             const isNativeOut = tokenOut.toLowerCase() === chainConfig.NATIVE_ADDRESS.toLowerCase();
             const isWrappedIn = tokenIn.toLowerCase()  === chainConfig.WRAPPED_NATIVE.toLowerCase();
@@ -356,8 +339,7 @@ function createRouter(chainId, provider) {
                 tokenIn,
                 tokenOut,
                 maxSteps,
-                slippageBps,
-                protocolFeeBps
+                slippageBps
             );
 
             let calldata, swapType;

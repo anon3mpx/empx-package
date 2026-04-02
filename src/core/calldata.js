@@ -10,10 +10,7 @@
 
 const { ethers, isAddress } = require("ethers");
 const { ERC20_ABI } = require("./abi");
-
-// Default protocol fee configuration (all chains)
-const DEFAULT_PROTOCOL_FEE_BPS = BigInt(28); // 0.28%
-const MIN_PROTOCOL_FEE_BPS = BigInt(9);      // router MIN_FEE
+const { getProtocolFeeBps, normalizeProtocolFeeBps } = require("./protocolFee");
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -39,23 +36,9 @@ function validateChainConfig(chainConfig) {
     if (!chainConfig?.ROUTER_ADDRESS) throw new Error("chainConfig.ROUTER_ADDRESS is required");
 }
 
-function resolveProtocolFeeBps(tradeInfo, protocolFeeBps) {
-    const feeRaw = protocolFeeBps ?? tradeInfo?.fee ?? DEFAULT_PROTOCOL_FEE_BPS;
-
-    let fee;
-    try {
-        fee = BigInt(feeRaw);
-    } catch {
-        throw new Error(`Invalid protocol fee: "${feeRaw}"`);
-    }
-
-    if (fee < MIN_PROTOCOL_FEE_BPS) {
-        throw new Error(
-            `protocol fee cannot be below router min fee (${MIN_PROTOCOL_FEE_BPS.toString()}). Received: ${fee.toString()}`
-        );
-    }
-
-    return fee;
+function resolveProtocolFeeBps(tradeInfo) {
+    const feeRaw = tradeInfo?.fee ?? getProtocolFeeBps();
+    return normalizeProtocolFeeBps(feeRaw);
 }
 
 /**
@@ -95,14 +78,13 @@ function buildTradeStruct(trade) {
  * @param {object} tradeInfo   - { amountIn, amountOut, path, adapters }
  * @param {string} toAddress   - Recipient address
  * @param {object} chainConfig - Chain config (provides routerAbi + ROUTER_ADDRESS)
- * @param {string|number|bigint} [protocolFeeBps] - Router fee arg. Defaults to tradeInfo.fee or 28.
  * @returns {{ to: string, data: string, value: string }}
  */
-function getSwapCalldata(tradeInfo, toAddress, chainConfig, protocolFeeBps) {
+function getSwapCalldata(tradeInfo, toAddress, chainConfig) {
     validateTradeInfo(tradeInfo);
     validateAddress(toAddress, "toAddress");
     validateChainConfig(chainConfig);
-    const fee = resolveProtocolFeeBps(tradeInfo, protocolFeeBps);
+    const fee = resolveProtocolFeeBps(tradeInfo);
 
     return encodeCalldata(
         chainConfig.routerAbi,
@@ -125,14 +107,13 @@ function getSwapCalldata(tradeInfo, toAddress, chainConfig, protocolFeeBps) {
  * @param {object} tradeInfo
  * @param {string} toAddress
  * @param {object} chainConfig
- * @param {string|number|bigint} [protocolFeeBps] - Router fee arg. Defaults to tradeInfo.fee or 28.
  * @returns {{ to: string, data: string, value: string }}
  */
-function getSwapFromNativeCalldata(tradeInfo, toAddress, chainConfig, protocolFeeBps) {
+function getSwapFromNativeCalldata(tradeInfo, toAddress, chainConfig) {
     validateTradeInfo(tradeInfo);
     validateAddress(toAddress, "toAddress");
     validateChainConfig(chainConfig);
-    const fee = resolveProtocolFeeBps(tradeInfo, protocolFeeBps);
+    const fee = resolveProtocolFeeBps(tradeInfo);
 
     return encodeCalldata(
         chainConfig.routerAbi,
@@ -156,14 +137,13 @@ function getSwapFromNativeCalldata(tradeInfo, toAddress, chainConfig, protocolFe
  * @param {object} tradeInfo
  * @param {string} toAddress
  * @param {object} chainConfig
- * @param {string|number|bigint} [protocolFeeBps] - Router fee arg. Defaults to tradeInfo.fee or 28.
  * @returns {{ to: string, data: string, value: string }}
  */
-function getSwapToNativeCalldata(tradeInfo, toAddress, chainConfig, protocolFeeBps) {
+function getSwapToNativeCalldata(tradeInfo, toAddress, chainConfig) {
     validateTradeInfo(tradeInfo);
     validateAddress(toAddress, "toAddress");
     validateChainConfig(chainConfig);
-    const fee = resolveProtocolFeeBps(tradeInfo, protocolFeeBps);
+    const fee = resolveProtocolFeeBps(tradeInfo);
 
     return encodeCalldata(
         chainConfig.routerAbi,

@@ -9,6 +9,7 @@ const {
     CHAINS,
 } = require("./chains");
 const { BASE_ROUTER_ABI, PLS_ROUTER_ABI, ETH_ROUTER_ABI, ERC20_ABI } = require("./core/abi");
+const { getProtocolFeeBps } = require("./core/protocolFee");
 
 // ─── Chain ID constants (named exports for convenience) ───────────────────────
 const CHAIN_IDS = {
@@ -53,6 +54,7 @@ module.exports = {
     getSupportedChainIds,
     CHAIN_IDS,
     CHAINS,
+    getProtocolFeeBps,
 
     // ── ABIs (for integrators who need raw contract access) ───────────────────
     // BASE_ROUTER_ABI  — shared functions present on every chain
