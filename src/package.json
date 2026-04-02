@@ -1,7 +1,7 @@
 {
   "name": "empx-sdk",
   "version": "1.0.0",
-  "description": "Multi-chain DEX router SDK for finding optimal swap paths across PulseChain, BSC, Arbitrum, Base, Polygon, Avalanche, and Optimism.",
+  "description": "Multi-chain DEX router SDK for no-split pathfinding, calldata generation, and USD quotes across EVM chains.",
   "main": "index.js",
   "types": "index.d.ts",
   "exports": {
@@ -23,7 +23,8 @@
     "build": "npm pack --dry-run --cache ./.npm-cache",
     "prepublishOnly": "npm run build",
     "test": "node tests/testPathFind.js",
-    "test:base:tx": "node tests/testBaseCalldataTx.js",
+    "test:calldata:tx": "node tests/testCalldataTx.js",
+    "test:base:tx": "node tests/testCalldataTx.js",
     "test:quote": "node tests/testQuote.js",
     "test:nosplit": "node tests/testNoSplit.js"
   },

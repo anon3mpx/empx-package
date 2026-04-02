@@ -72,6 +72,34 @@ function createRouter(chainId, provider) {
         return (amount * (BigInt(10000) - fee)) / BigInt(10000);
     }
 
+    function hasTokenCycle(path) {
+        const seen = new Set();
+        for (const token of path) {
+            const normalized = token.toLowerCase();
+            if (seen.has(normalized)) return true;
+            seen.add(normalized);
+        }
+        return false;
+    }
+
+    async function findBestPathPreferAcyclic(amountIn, tokenIn, tokenOut, maxSteps) {
+        const primary = await findBestPath(_provider, chainConfig, amountIn, tokenIn, tokenOut, maxSteps);
+        if (!hasTokenCycle(primary.path)) return primary;
+
+        for (let steps = maxSteps - 1; steps >= 1; steps--) {
+            try {
+                const candidate = await findBestPath(_provider, chainConfig, amountIn, tokenIn, tokenOut, steps);
+                if (!hasTokenCycle(candidate.path)) {
+                    return candidate;
+                }
+            } catch {
+                // Keep trying with fewer steps.
+            }
+        }
+
+        return primary;
+    }
+
     function buildTradeInfo(pathResult, slippageBps, protocolFeeBps, originalAmountIn) {
         const rawAmountOut = BigInt(pathResult.amounts[pathResult.amounts.length - 1]);
         const amountOut    = (rawAmountOut * BigInt(10000 - slippageBps)) / BigInt(10000);
@@ -128,7 +156,8 @@ function createRouter(chainId, provider) {
 
         /**
          * Finds best path and returns a tradeInfo object with slippage applied.
-         * Routing is computed using the fee-adjusted input amount.
+         * Routing is computed using the fee-adjusted input amount and prefers
+         * non-cyclic token paths when available.
          * Ready to pass directly into any calldata builder or swap().
          *
          * @param {string|bigint} amountIn
@@ -155,8 +184,8 @@ function createRouter(chainId, provider) {
                 throw new Error("amountIn is too small after protocol fee deduction");
             }
 
-            const pathResult = await findBestPath(
-                _provider, chainConfig, effectiveAmountIn, tokenIn, tokenOut, maxSteps
+            const pathResult = await findBestPathPreferAcyclic(
+                effectiveAmountIn, tokenIn, tokenOut, maxSteps
             );
             return buildTradeInfo(pathResult, slippageBps, normalizedFee, amountIn);
         },
@@ -263,7 +292,8 @@ function createRouter(chainId, provider) {
 
         /**
          * Finds best path and returns the correct calldata for the swap type
-         * (NativeToERC20, ERC20ToNative, or ERC20ToERC20) in a single call.
+         * (WrapNative, UnwrapNative, NativeToERC20, ERC20ToNative, or ERC20ToERC20)
+         * in a single call.
          *
          * Does NOT submit the transaction — returns calldata for the caller to send.
          * For ERC-20 input, call checkAllowance() first and send an approval if needed.
@@ -278,12 +308,48 @@ function createRouter(chainId, provider) {
          * @returns {Promise<{
          *   tradeInfo: object,
          *   calldata:  { to: string, data: string, value: string },
-         *   swapType:  "NativeToERC20" | "ERC20ToNative" | "ERC20ToERC20"
+         *   swapType:  "WrapNative" | "UnwrapNative" | "NativeToERC20" | "ERC20ToNative" | "ERC20ToERC20"
          * }>}
          */
         async swap(amountIn, tokenIn, tokenOut, toAddress, maxSteps = 3, slippageBps = 200, protocolFeeBps = DEFAULT_PROTOCOL_FEE_BPS) {
             const isNativeIn  = tokenIn.toLowerCase()  === chainConfig.NATIVE_ADDRESS.toLowerCase();
             const isNativeOut = tokenOut.toLowerCase() === chainConfig.NATIVE_ADDRESS.toLowerCase();
+            const isWrappedIn = tokenIn.toLowerCase()  === chainConfig.WRAPPED_NATIVE.toLowerCase();
+            const isWrappedOut = tokenOut.toLowerCase() === chainConfig.WRAPPED_NATIVE.toLowerCase();
+
+            if (isNativeIn && isWrappedOut) {
+                const tradeInfo = {
+                    amountIn: amountIn.toString(),
+                    amountOut: amountIn.toString(),
+                    fee: "0",
+                    amounts: [amountIn.toString(), amountIn.toString()],
+                    path: [chainConfig.NATIVE_ADDRESS, chainConfig.WRAPPED_NATIVE],
+                    adapters: [],
+                    gasEstimate: "0",
+                };
+                return {
+                    tradeInfo,
+                    calldata: this.getWrapCalldata({ amountIn: tradeInfo.amountIn }),
+                    swapType: "WrapNative",
+                };
+            }
+
+            if (isWrappedIn && isNativeOut) {
+                const tradeInfo = {
+                    amountIn: amountIn.toString(),
+                    amountOut: amountIn.toString(),
+                    fee: "0",
+                    amounts: [amountIn.toString(), amountIn.toString()],
+                    path: [chainConfig.WRAPPED_NATIVE, chainConfig.NATIVE_ADDRESS],
+                    adapters: [],
+                    gasEstimate: "0",
+                };
+                return {
+                    tradeInfo,
+                    calldata: this.getUnwrapCalldata({ amountIn: tradeInfo.amountIn }),
+                    swapType: "UnwrapNative",
+                };
+            }
 
             const tradeInfo = await this.getTradeInfo(
                 amountIn,

@@ -1,6 +1,6 @@
-# empx-sdk v2
+# empx-sdk
 
-Multi-chain DEX router package. Finds optimal swap paths, builds transaction calldata, and returns USD price quotes across 7 chains from a single unified API.
+Multi-chain DEX router package. Finds optimal no-split swap paths, builds transaction calldata, and returns USD price quotes from a single unified API.
 
 ## Supported Chains
 
@@ -10,9 +10,14 @@ Multi-chain DEX router package. Finds optimal swap paths, builds transaction cal
 | BSC         | 56       | BNB          |
 | Arbitrum    | 42161    | ETH          |
 | Base        | 8453     | ETH          |
-| Polygon     | 137      | MATIC        |
+| Polygon     | 137      | POL          |
 | Avalanche   | 43114    | AVAX         |
 | Optimism    | 10       | ETH          |
+| Monad       | 143      | MON          |
+| Sonic       | 146      | S            |
+| Sei         | 1329     | SEI          |
+| Berachain   | 80094    | BERA         |
+| Rootstock   | 30       | RBTC         |
 
 ---
 
@@ -82,6 +87,11 @@ CHAIN_IDS.BASE        // 8453
 CHAIN_IDS.POLYGON     // 137
 CHAIN_IDS.AVALANCHE   // 43114
 CHAIN_IDS.OPTIMISM    // 10
+CHAIN_IDS.MONAD       // 143
+CHAIN_IDS.SONIC       // 146
+CHAIN_IDS.SEI         // 1329
+CHAIN_IDS.BERACHAIN   // 80094
+CHAIN_IDS.ROOTSTOCK   // 30
 ```
 
 ---
@@ -397,28 +407,13 @@ executeSwap(
 
 ---
 
-## Adding a New Chain
-
-1. Create `src/chains/mychain.js` following the same structure as existing chain files.
-2. Register it in `src/chains/index.js`:
-   ```javascript
-   const CHAINS = {
-       // ...existing chains
-       12345: require("./mychain"),
-   };
-   ```
-3. Add to `CHAIN_IDS` in `src/index.js` and `src/index.d.ts`.
-
-That's it — all router functions work automatically on the new chain.
-
----
-
 ## Testing
 
 ```sh
 node tests/testPathFind.js   # path finding + calldata
 node tests/testQuote.js      # USD price quotes
 node tests/testNoSplit.js    # no-split swap behavior
+node tests/testCalldataTx.js # calldata + optional real tx
 ```
 
 ---

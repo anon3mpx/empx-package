@@ -1,8 +1,8 @@
-// ─── Test: Base calldata + optional real transaction ─────────────────────────
+// ─── Test: calldata + optional real transaction ──────────────────────────────
 // Builds calldata by default. Sends real tx only when EXECUTE_TX=true.
 //
 // Usage:
-//   node tests/testBaseCalldataTx.js
+//   node tests/testCalldataTx.js
 //
 // Optional env vars:
 //   TARGET_CHAIN_ID="8453"               # default Base (8453)

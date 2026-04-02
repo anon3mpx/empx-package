@@ -66,7 +66,7 @@ export interface CalldataResult {
 export interface SwapResult {
     tradeInfo: TradeInfo;
     calldata: CalldataResult;
-    swapType: "NativeToERC20" | "ERC20ToNative" | "ERC20ToERC20";
+    swapType: "WrapNative" | "UnwrapNative" | "NativeToERC20" | "ERC20ToNative" | "ERC20ToERC20";
 }
 
 export interface QuoteUSDResult {
@@ -135,6 +135,11 @@ export declare const CHAIN_IDS: {
     POLYGON:    137;
     AVALANCHE:  43114;
     OPTIMISM:   10;
+    MONAD:      143;
+    SONIC:      146;
+    SEI:        1329;
+    BERACHAIN:  80094;
+    ROOTSTOCK:  30;
 };
 
 // ─── Exports ──────────────────────────────────────────────────────────────────
