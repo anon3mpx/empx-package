@@ -1,7 +1,6 @@
 // ─── Avalanche C-Chain (Chain ID: 43114) ──────────────────────────────────────
 
 const { ETH_ROUTER_ABI } = require("../core/abi");
-const { STABLE_TOKENS, TRUSTED_TOKENS } = require("./arbitrum");
 
 module.exports = {
   chainId: 43114,

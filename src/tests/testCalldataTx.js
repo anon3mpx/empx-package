@@ -59,7 +59,7 @@ const TEST_CONFIG = {
     AMOUNT_IN_RAW:    process.env.AMOUNT_IN_RAW    || "1000000",
     RECIPIENT:        process.env.RECIPIENT        || "0xRecipientAddressHere",
     MAX_STEPS:        Number(process.env.MAX_STEPS || 3),
-    SLIPPAGE_BPS:     Number(process.env.SLIPPAGE_BPS || 200),
+    SLIPPAGE_BPS:     Number(process.env.SLIPPAGE_BPS),
 };
 
 const TARGET_CHAIN_ID = Number(process.env.TARGET_CHAIN_ID || CHAIN_IDS.BASE);
@@ -103,7 +103,6 @@ async function main() {
     const recipient = TEST_CONFIG.RECIPIENT;
 
     const isNativeIn = tokenIn.toLowerCase() === router.chain.NATIVE_ADDRESS.toLowerCase();
-    const isNativeOut = tokenOut.toLowerCase() === router.chain.NATIVE_ADDRESS.toLowerCase();
 
     console.log("\n=== Calldata TX Test ===");
     console.log("Chain:", router.chain.name, `(${router.chain.chainId})`);
@@ -115,27 +114,14 @@ async function main() {
     console.log("Protocol fee (bps):", getProtocolFeeBps());
     console.log("Execute tx:", EXECUTE_TX);
 
-    const tradeInfo = await router.getTradeInfo(
+    const { tradeInfo, calldata, swapType } = await router.swap(
         amountIn,
         tokenIn,
         tokenOut,
+        recipient,
         TEST_CONFIG.MAX_STEPS,
         TEST_CONFIG.SLIPPAGE_BPS
     );
-
-    let calldata;
-    let swapType;
-
-    if (isNativeIn && !isNativeOut) {
-        calldata = router.getSwapFromNativeCalldata(tradeInfo, recipient);
-        swapType = "NativeToERC20";
-    } else if (!isNativeIn && isNativeOut) {
-        calldata = router.getSwapToNativeCalldata(tradeInfo, recipient);
-        swapType = "ERC20ToNative";
-    } else {
-        calldata = router.getSwapCalldata(tradeInfo, recipient);
-        swapType = "ERC20ToERC20";
-    }
 
     console.log("SwapType:", swapType);
     console.log("TradeInfo:", JSON.stringify(tradeInfo, null, 2));
@@ -152,7 +138,8 @@ async function main() {
     const wallet = new ethers.Wallet(PRIVATE_KEY, router.provider);
     console.log("Sender:", wallet.address);
 
-    if (!isNativeIn) {
+    const needsApproval = !isNativeIn && swapType !== "UnwrapNative";
+    if (needsApproval) {
         let allowance = await router.checkAllowance(tokenIn, wallet.address, tradeInfo.amountIn);
         console.log("Allowance:", allowance.allowance, "Approved:", allowance.approved);
 

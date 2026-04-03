@@ -1,7 +1,6 @@
 // ─── Arbitrum One (Chain ID: 42161) ───────────────────────────────────────────
 
 const { ETH_ROUTER_ABI } = require("../core/abi");
-const { USD_STABLE } = require("./pulsechain");
 
 module.exports = {
   chainId: 42161,

@@ -1,7 +1,6 @@
 // ─── BNB Smart Chain (Chain ID: 56) ───────────────────────────────────────────
 
 const { ETH_ROUTER_ABI } = require("../core/abi");
-const { USD_STABLE } = require("./pulsechain");
 
 module.exports = {
   chainId: 56,

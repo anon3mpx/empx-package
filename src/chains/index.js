@@ -14,6 +14,7 @@ const CHAINS = {
     1329:  require("./sei"),
     80094: require("./berachain"),
     30:    require("./rootstock"),
+    999:   require("./hyperevm"),
 };
 
 /**

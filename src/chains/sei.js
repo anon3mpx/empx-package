@@ -15,7 +15,7 @@ module.exports = {
 
   nativeCurrency: { name: "Sei", symbol: "SEI", decimals: 18 },
 
-  rpcUrl: "https://sei.drpc.org",
+  rpcUrl: "https://evm-rpc.sei-apis.com",
 
   ROUTER_ADDRESS: "0xb0e99628d884b3f45a312BCFD7A2505Cd711b657",
   NATIVE_ADDRESS: "0x0000000000000000000000000000000000000000",
