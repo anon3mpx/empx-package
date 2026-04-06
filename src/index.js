@@ -26,6 +26,7 @@ const CHAIN_IDS = {
     BERACHAIN:   80094,
     ROOTSTOCK:   30,
     HYPEREVM:    999,
+    ETHW:        10001,
 };
 
 /**
