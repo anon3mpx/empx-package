@@ -1,25 +1,65 @@
-# empx-sdk
+# empx-swap-sdk-beta
 
 Multi-chain DEX router package. Finds optimal no-split swap paths, builds transaction calldata, and returns USD price quotes from a single unified API.
 
-## AI Automation Integration
+---
 
-Use this SDK in deterministic agent/automation flows:
+## AI Agent Integration
 
-1. Create router once per chain: `createRouter(chainId, providerOrRpc)`.
-2. Build trade deterministically: `getTradeInfo(...)` (set explicit `maxSteps`, `slippageBps`).
-3. Build calldata only: `swap(...)` or specific calldata builders.
-4. Execute externally in your signer/runtime.
+This SDK is designed to be **AI-agent native**: deterministic, schema-defined, side-effect-free, and structured for reliable orchestration pipelines.
 
-Recommended machine-output payload shape:
+### Agent Playbook (Standard Swap Workflow)
+
+```
+1.            router.getTradeInfo(...)   → get route + tradeInfo with quoteId + validUntil
+2. [if ERC-20] router.checkAllowance(...)  → check if approval is needed
+   [if needed] router.getApprovalCalldata(...) → build approval calldata → return to signer
+3.            router.getSwapCalldata(...)  → build swap calldata (validates validUntil)
+4.            RETURN calldata to signer    → DO NOT execute transactions from within the agent
+```
+
+Or use the all-in-one shortcut:
+
+```
+1.            router.swap(...)           → getTradeInfo + calldata in one call
+2.            RETURN calldata to signer
+```
+
+### Recommended Output Payload
 
 ```json
 {
   "chainId": 143,
   "swapType": "ERC20ToERC20",
-  "tradeInfo": { "amountIn": "...", "amountOut": "...", "fee": "28" },
+  "tradeInfo": {
+    "amountIn": "1000000000000000000",
+    "amountOut": "960400000000000000",
+    "fee": "28",
+    "quoteId": "a3f2c1d4-...",
+    "validUntil": 1712345678000,
+    "sdkVersion": "1.0.0"
+  },
   "calldata": { "to": "0x...", "data": "0x...", "value": "0" }
 }
+```
+
+> **Important for agents:** Always check `tradeInfo.validUntil > Date.now()` before building calldata.
+> Quotes expire after **30 seconds**. If expired, re-call `getTradeInfo()` (retryable).
+
+### Plug-and-play with OpenAI / LangChain / AI Agents
+
+```javascript
+const { TOOL_SCHEMAS } = require("empx-swap-sdk-beta");
+
+// OpenAI Agents SDK
+const openAiTool = {
+  type: "function",
+  function: {
+    name:        TOOL_SCHEMAS.getTradeInfo.name,
+    description: TOOL_SCHEMAS.getTradeInfo.description,
+    parameters:  TOOL_SCHEMAS.getTradeInfo.inputSchema,
+  },
+};
 ```
 
 ## Supported Chains
@@ -44,7 +84,7 @@ Recommended machine-output payload shape:
 ## Installation
 
 ```sh
-npm install empx-sdk
+npm install empx-swap-sdk-beta
 ```
 
 ---
@@ -52,7 +92,7 @@ npm install empx-sdk
 ## Quick Start
 
 ```javascript
-const { createRouter, CHAIN_IDS, getProtocolFeeBps } = require("empx-sdk");
+const { createRouter, CHAIN_IDS, getProtocolFeeBps } = require("empx-swap-sdk-beta");
 
 // Create a router scoped to a chain
 const router = createRouter(CHAIN_IDS.PULSECHAIN);
@@ -87,7 +127,7 @@ const tx = await signer.sendTransaction({
 The main entry point. Returns a router instance bound to a specific chain.
 
 ```javascript
-const { createRouter, CHAIN_IDS } = require("empx-sdk");
+const { createRouter, CHAIN_IDS } = require("empx-swap-sdk-beta");
 
 // Uses the chain's default public RPC
 const router = createRouter(CHAIN_IDS.ARBITRUM);
@@ -121,7 +161,7 @@ CHAIN_IDS.ROOTSTOCK   // 30
 Protocol fee is managed inside the SDK and applied automatically during trade building and calldata generation.
 
 ```javascript
-const { getProtocolFeeBps } = require("empx-sdk");
+const { getProtocolFeeBps } = require("empx-swap-sdk-beta");
 
 console.log(getProtocolFeeBps()); // "28"
 ```
@@ -356,7 +396,7 @@ router.chain.TRUSTED_TOKENS   // [...] routing tokens
 You can also access chain configs directly:
 
 ```javascript
-const { getChainConfig, getAllChains, getSupportedChainIds } = require("empx-sdk");
+const { getChainConfig, getAllChains, getSupportedChainIds } = require("empx-swap-sdk-beta");
 
 getChainConfig(369);       // PulseChain config object
 getAllChains();            // All supported chain configs
@@ -368,7 +408,7 @@ getSupportedChainIds();    // All supported chain IDs
 ## Full Example: Multi-chain Price Dashboard
 
 ```javascript
-const { createRouter, CHAIN_IDS } = require("empx-sdk");
+const { createRouter, CHAIN_IDS } = require("empx-swap-sdk-beta");
 
 async function getPricesAcrossChains(tokensByChain) {
     const results = await Promise.allSettled(
@@ -397,7 +437,7 @@ const prices = await getPricesAcrossChains({
 
 ```javascript
 const { ethers } = require("ethers");
-const { createRouter, CHAIN_IDS } = require("empx-sdk");
+const { createRouter, CHAIN_IDS } = require("empx-swap-sdk-beta");
 
 const provider = new ethers.JsonRpcProvider("https://arb1.arbitrum.io/rpc");
 const signer   = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
@@ -435,6 +475,51 @@ executeSwap(
     "500000000000000000"                          // 0.5 ETH
 );
 ```
+
+---
+
+## Structured Errors
+
+All errors thrown by the SDK use `EmpxError` with a machine-readable `code` and `retryable` flag.
+
+```javascript
+const { EmpxError, ERROR_CODES } = require("empx-swap-sdk-beta");
+
+try {
+    await router.getTradeInfo(amountIn, tokenIn, tokenOut);
+} catch (err) {
+    if (err instanceof EmpxError) {
+        console.log(err.code);      // e.g. "SLIPPAGE_TOO_HIGH"
+        console.log(err.retryable); // true = agent may retry, false = fix the input
+        console.log(err.toJSON());
+        // { error: { code: "SLIPPAGE_TOO_HIGH", message: "...", retryable: false, context: {...} } }
+    }
+}
+```
+
+### Error Code Reference
+
+| Code | Retryable | Description |
+|------|-----------|-------------|
+| `INVALID_INPUT` | No | Missing or malformed parameter |
+| `INVALID_ADDRESS` | No | tokenIn/tokenOut is not a valid EVM address |
+| `INVALID_AMOUNT` | No | amountIn is zero or not a valid integer |
+| `SLIPPAGE_TOO_HIGH` | No | slippageBps exceeds 1000 (10%) |
+| `STEPS_OUT_OF_RANGE` | No | maxSteps must be 1–4 |
+| `AMOUNT_TOO_SMALL` | No | amountIn too small after protocol fee |
+| `NO_ROUTE_FOUND` | **Yes** | No swap path found (may be transient RPC) |
+| `QUOTE_EXPIRED` | **Yes** | tradeInfo.validUntil has passed — re-fetch |
+
+---
+
+## Retry & Rate-Limit Guidance
+
+- **`NO_ROUTE_FOUND` and `QUOTE_EXPIRED`** are marked `retryable: true` — agents should re-call after a short delay.
+- **All other errors** are `retryable: false` — fix the input, don't loop.
+- **Recommended backoff**: 500ms → 1s → 2s (exponential, max 3 retries for retryable errors).
+- **RPC rate limits**: Use a private/dedicated RPC endpoint for production agents. Public RPCs may throttle rapidly-retried calls.
+- **Quote TTL**: Re-fetch `getTradeInfo()` every 30 seconds at most. Stale quotes will throw `QUOTE_EXPIRED`.
+- **Parallelism**: `getMultipleTokenPricesUSD()` is already batched in parallel — prefer it over calling `getTokenPriceUSD()` in a loop.
 
 ---
 

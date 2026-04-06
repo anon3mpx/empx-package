@@ -1,9 +1,9 @@
 // ─── Router Factory ───────────────────────────────────────────────────────────
 // createRouter(chainId, providerOrRpc?) returns a fully-bound router instance.
 
-const { ethers } = require("ethers");
+const { ethers }  = require("ethers");
 const { getChainConfig } = require("./chains");
-const { findBestPath } = require("./core/pathfinder");
+const { findBestPath }   = require("./core/pathfinder");
 const { getProtocolFeeBps } = require("./core/protocolFee");
 const {
     getSwapCalldata,
@@ -20,7 +20,17 @@ const {
     getTokenDecimals,
     getTokenSymbol,
 } = require("./core/quotes");
-const { ERC20_ABI } = require("./core/abi");
+const { ERC20_ABI }           = require("./core/abi");
+const { EmpxError, ERROR_CODES } = require("./core/errors");
+const {
+    validateTradeParams,
+    assertQuoteNotExpired,
+} = require("./core/validators");
+
+const SDK_VERSION = require("./package.json").version;
+
+// ─── Quote TTL ────────────────────────────────────────────────────────────────
+const QUOTE_TTL_MS = 30_000; // 30 seconds
 
 /**
  * Creates a router instance scoped to a specific chain.
@@ -28,7 +38,7 @@ const { ERC20_ABI } = require("./core/abi");
  * @param {number}                  chainId    - Chain ID (e.g. 369, 56, 42161…)
  * @param {string|ethers.Provider}  [provider] - RPC URL or ethers Provider.
  *                                               Omit to use the chain's default RPC.
- * @returns {EmpSealRouter}
+ * @returns {EmpxRouter}
  *
  * @example
  * const router = createRouter(369);                        // PulseChain, default RPC
@@ -50,13 +60,9 @@ function createRouter(chainId, provider) {
 
     // ─── Internal helpers ─────────────────────────────────────────────────────
 
-    /**
-     * Wraps a raw findBestPath result in a tradeInfo object with slippage applied.
-     * gasEstimate is passed through from the on-chain router response.
-     */
     function applyProtocolFee(amountIn, protocolFeeBps) {
         const amount = BigInt(amountIn);
-        const fee = BigInt(protocolFeeBps);
+        const fee    = BigInt(protocolFeeBps);
         return (amount * (BigInt(10000) - fee)) / BigInt(10000);
     }
 
@@ -71,26 +77,36 @@ function createRouter(chainId, provider) {
     }
 
     async function findBestPathPreferAcyclic(amountIn, tokenIn, tokenOut, maxSteps) {
-        const primary = await findBestPath(_provider, chainConfig, amountIn, tokenIn, tokenOut, maxSteps);
-        if (!hasTokenCycle(primary.path)) return primary;
+        try {
+            const primary = await findBestPath(_provider, chainConfig, amountIn, tokenIn, tokenOut, maxSteps);
+            if (!hasTokenCycle(primary.path)) return primary;
 
-        for (let steps = maxSteps - 1; steps >= 1; steps--) {
-            try {
-                const candidate = await findBestPath(_provider, chainConfig, amountIn, tokenIn, tokenOut, steps);
-                if (!hasTokenCycle(candidate.path)) {
-                    return candidate;
+            for (let steps = maxSteps - 1; steps >= 1; steps--) {
+                try {
+                    const candidate = await findBestPath(_provider, chainConfig, amountIn, tokenIn, tokenOut, steps);
+                    if (!hasTokenCycle(candidate.path)) return candidate;
+                } catch {
+                    // Keep trying with fewer steps.
                 }
-            } catch {
-                // Keep trying with fewer steps.
             }
+            return primary;
+        } catch (err) {
+            // Wrap RPC-level errors in structured EmpxError
+            if (err instanceof EmpxError) throw err;
+            throw new EmpxError(
+                ERROR_CODES.NO_ROUTE_FOUND,
+                err.message || "Failed to find a swap route",
+                true, // retryable — may be a transient RPC issue
+                { tokenIn, tokenOut, maxSteps }
+            );
         }
-
-        return primary;
     }
 
     function buildTradeInfo(pathResult, slippageBps, protocolFeeBps, originalAmountIn) {
         const rawAmountOut = BigInt(pathResult.amounts[pathResult.amounts.length - 1]);
         const amountOut    = (rawAmountOut * BigInt(10000 - slippageBps)) / BigInt(10000);
+
+        const now = Date.now();
         return {
             amountIn:    originalAmountIn.toString(),
             amountOut:   amountOut.toString(),
@@ -99,13 +115,15 @@ function createRouter(chainId, provider) {
             path:        pathResult.path,
             adapters:    pathResult.adapters,
             gasEstimate: pathResult.gasEstimate,
+            // ── Idempotency / reproducibility ────────────────────────────────
+            quoteId:    crypto.randomUUID(),
+            timestamp:  now,
+            validUntil: now + QUOTE_TTL_MS,
+            sdkVersion: SDK_VERSION,
         };
     }
 
-    /**
-     * Reads the current ERC-20 allowance the owner has granted to the router.
-     */
-    async function checkAllowance(tokenAddress, ownerAddress, requiredAmount) {
+    async function checkAllowanceInternal(tokenAddress, ownerAddress, requiredAmount) {
         const token     = new ethers.Contract(tokenAddress, ERC20_ABI, _provider);
         const allowance = await token.allowance(ownerAddress, chainConfig.ROUTER_ADDRESS);
         return {
@@ -116,7 +134,7 @@ function createRouter(chainId, provider) {
 
     // ─── Public API ───────────────────────────────────────────────────────────
 
-    return {
+    const router = {
 
         // ── Metadata ──────────────────────────────────────────────────────────
 
@@ -146,55 +164,56 @@ function createRouter(chainId, provider) {
          * Finds best path and returns a tradeInfo object with slippage applied.
          * Routing is computed using the fee-adjusted input amount and prefers
          * non-cyclic token paths when available.
-         * Ready to pass directly into any calldata builder or swap().
+         *
+         * TradeInfo now includes:
+         * - `quoteId`    — unique ID for traceability
+         * - `validUntil` — TTL timestamp (30s); validate before building calldata
+         * - `sdkVersion` — SDK version that produced this quote
          *
          * @param {string|bigint} amountIn
          * @param {string}        tokenIn
          * @param {string}        tokenOut
          * @param {number}        [maxSteps=3]
          * @param {number}        [slippageBps=200]  - 200 = 2%
-         * @returns {Promise<{
-         *   amountIn:    string,
-         *   amountOut:   string,
-         *   fee:         string,
-         *   amounts:     string[],
-         *   path:        string[],
-         *   adapters:    string[],
-         *   gasEstimate: string
-         * }>}
+         * @returns {Promise<TradeInfo>}
          */
         async getTradeInfo(amountIn, tokenIn, tokenOut, maxSteps = 3, slippageBps = 200) {
-            const normalizedFee = getProtocolFeeBps();
+            // ── Validate inputs ───────────────────────────────────────────────
+            validateTradeParams({
+                amountIn, tokenIn, tokenOut, maxSteps, slippageBps,
+                nativeAddress: chainConfig.NATIVE_ADDRESS,
+            });
+
+            const normalizedFee     = getProtocolFeeBps();
             const effectiveAmountIn = applyProtocolFee(amountIn, normalizedFee);
 
             if (effectiveAmountIn <= BigInt(0)) {
-                throw new Error("amountIn is too small after protocol fee deduction");
+                throw new EmpxError(
+                    ERROR_CODES.AMOUNT_TOO_SMALL,
+                    "amountIn is too small after protocol fee deduction",
+                    false,
+                    { amountIn: amountIn.toString(), fee: normalizedFee }
+                );
             }
 
-            const pathResult = await findBestPathPreferAcyclic(
-                effectiveAmountIn, tokenIn, tokenOut, maxSteps
-            );
-            return buildTradeInfo(pathResult, slippageBps, normalizedFee, amountIn);
+            const pathResult = await findBestPathPreferAcyclic(effectiveAmountIn, tokenIn, tokenOut, maxSteps);
+            const tradeInfo  = buildTradeInfo(pathResult, slippageBps, normalizedFee, amountIn);
+            return tradeInfo;
         },
 
         // ── Allowance ─────────────────────────────────────────────────────────
 
         /**
          * Checks whether an address has approved the router to spend at least
-         * requiredAmount of a token. Call this before building ERC-20 swap
-         * calldata to determine whether an approval transaction is needed first.
+         * requiredAmount of a token.
          *
          * @param {string}        tokenAddress
          * @param {string}        ownerAddress
          * @param {string|bigint} requiredAmount  - Typically tradeInfo.amountIn
          * @returns {Promise<{ approved: boolean, allowance: string }>}
-         *
-         * @example
-         * const { approved } = await router.checkAllowance(tokenIn, userAddress, tradeInfo.amountIn);
-         * if (!approved) await signer.sendTransaction(router.getApprovalCalldata(tokenIn));
          */
         checkAllowance(tokenAddress, ownerAddress, requiredAmount) {
-            return checkAllowance(tokenAddress, ownerAddress, requiredAmount);
+            return checkAllowanceInternal(tokenAddress, ownerAddress, requiredAmount);
         },
 
         // ── Calldata builders ─────────────────────────────────────────────────
@@ -208,6 +227,7 @@ function createRouter(chainId, provider) {
          * @returns {{ to: string, data: string, value: string }}
          */
         getSwapCalldata(tradeInfo, toAddress) {
+            assertQuoteNotExpired(tradeInfo);
             return getSwapCalldata(tradeInfo, toAddress, chainConfig);
         },
 
@@ -216,13 +236,12 @@ function createRouter(chainId, provider) {
          *   PulseChain   → swapNoSplitFromPLS
          *   Other chains → swapNoSplitFromETH
          *
-         * Attach calldata.value as msg.value when sending the transaction.
-         *
          * @param {object} tradeInfo
          * @param {string} toAddress
          * @returns {{ to: string, data: string, value: string }}
          */
         getSwapFromNativeCalldata(tradeInfo, toAddress) {
+            assertQuoteNotExpired(tradeInfo);
             return getSwapFromNativeCalldata(tradeInfo, toAddress, chainConfig);
         },
 
@@ -231,13 +250,12 @@ function createRouter(chainId, provider) {
          *   PulseChain   → swapNoSplitToPLS
          *   Other chains → swapNoSplitToETH
          *
-         * Ensure the router is approved to spend tokenIn before submitting.
-         *
          * @param {object} tradeInfo
          * @param {string} toAddress
          * @returns {{ to: string, data: string, value: string }}
          */
         getSwapToNativeCalldata(tradeInfo, toAddress) {
+            assertQuoteNotExpired(tradeInfo);
             return getSwapToNativeCalldata(tradeInfo, toAddress, chainConfig);
         },
 
@@ -288,27 +306,32 @@ function createRouter(chainId, provider) {
          * @param {string}        toAddress     - Recipient of output tokens
          * @param {number}        [maxSteps=3]
          * @param {number}        [slippageBps=200]
-         * @returns {Promise<{
-         *   tradeInfo: object,
-         *   calldata:  { to: string, data: string, value: string },
-         *   swapType:  "WrapNative" | "UnwrapNative" | "NativeToERC20" | "ERC20ToNative" | "ERC20ToERC20"
-         * }>}
+         * @returns {Promise<{ tradeInfo: object, calldata: { to, data, value }, swapType: string }>}
          */
         async swap(amountIn, tokenIn, tokenOut, toAddress, maxSteps = 3, slippageBps = 200) {
-            const isNativeIn  = tokenIn.toLowerCase()  === chainConfig.NATIVE_ADDRESS.toLowerCase();
-            const isNativeOut = tokenOut.toLowerCase() === chainConfig.NATIVE_ADDRESS.toLowerCase();
-            const isWrappedIn = tokenIn.toLowerCase()  === chainConfig.WRAPPED_NATIVE.toLowerCase();
+            validateTradeParams({
+                amountIn, tokenIn, tokenOut, maxSteps, slippageBps,
+                nativeAddress: chainConfig.NATIVE_ADDRESS,
+            });
+
+            const isNativeIn   = tokenIn.toLowerCase()  === chainConfig.NATIVE_ADDRESS.toLowerCase();
+            const isNativeOut  = tokenOut.toLowerCase() === chainConfig.NATIVE_ADDRESS.toLowerCase();
+            const isWrappedIn  = tokenIn.toLowerCase()  === chainConfig.WRAPPED_NATIVE.toLowerCase();
             const isWrappedOut = tokenOut.toLowerCase() === chainConfig.WRAPPED_NATIVE.toLowerCase();
 
             if (isNativeIn && isWrappedOut) {
                 const tradeInfo = {
-                    amountIn: amountIn.toString(),
-                    amountOut: amountIn.toString(),
-                    fee: "0",
-                    amounts: [amountIn.toString(), amountIn.toString()],
-                    path: [chainConfig.NATIVE_ADDRESS, chainConfig.WRAPPED_NATIVE],
-                    adapters: [],
+                    amountIn:    amountIn.toString(),
+                    amountOut:   amountIn.toString(),
+                    fee:         "0",
+                    amounts:     [amountIn.toString(), amountIn.toString()],
+                    path:        [chainConfig.NATIVE_ADDRESS, chainConfig.WRAPPED_NATIVE],
+                    adapters:    [],
                     gasEstimate: "0",
+                    quoteId:     crypto.randomUUID(),
+                    timestamp:   Date.now(),
+                    validUntil:  Date.now() + QUOTE_TTL_MS,
+                    sdkVersion:  SDK_VERSION,
                 };
                 return {
                     tradeInfo,
@@ -319,13 +342,17 @@ function createRouter(chainId, provider) {
 
             if (isWrappedIn && isNativeOut) {
                 const tradeInfo = {
-                    amountIn: amountIn.toString(),
-                    amountOut: amountIn.toString(),
-                    fee: "0",
-                    amounts: [amountIn.toString(), amountIn.toString()],
-                    path: [chainConfig.WRAPPED_NATIVE, chainConfig.NATIVE_ADDRESS],
-                    adapters: [],
+                    amountIn:    amountIn.toString(),
+                    amountOut:   amountIn.toString(),
+                    fee:         "0",
+                    amounts:     [amountIn.toString(), amountIn.toString()],
+                    path:        [chainConfig.WRAPPED_NATIVE, chainConfig.NATIVE_ADDRESS],
+                    adapters:    [],
                     gasEstimate: "0",
+                    quoteId:     crypto.randomUUID(),
+                    timestamp:   Date.now(),
+                    validUntil:  Date.now() + QUOTE_TTL_MS,
+                    sdkVersion:  SDK_VERSION,
                 };
                 return {
                     tradeInfo,
@@ -334,13 +361,7 @@ function createRouter(chainId, provider) {
                 };
             }
 
-            const tradeInfo = await this.getTradeInfo(
-                amountIn,
-                tokenIn,
-                tokenOut,
-                maxSteps,
-                slippageBps
-            );
+            const tradeInfo = await this.getTradeInfo(amountIn, tokenIn, tokenOut, maxSteps, slippageBps);
 
             let calldata, swapType;
 
@@ -414,6 +435,8 @@ function createRouter(chainId, provider) {
             return getTokenSymbol(_provider, chainConfig, tokenAddress);
         },
     };
+
+    return router;
 }
 
 module.exports = { createRouter };

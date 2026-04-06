@@ -1,5 +1,6 @@
-// ─── empx-sdk ─────────────────────────────────────────────────────────────────
-// Multi-chain DEX router: PulseChain, BSC, Arbitrum, Base, Polygon, Avalanche, Optimism
+// ─── empx-swap-sdk-beta ─────────────────────────────────────────────────────────────────
+// Multi-chain DEX router: PulseChain, BSC, Arbitrum, Base, Polygon, Avalanche,
+// Optimism, Monad, Sonic, Sei, Berachain, Rootstock, HyperEVM, ETHW
 
 const { createRouter } = require("./router");
 const {
@@ -10,6 +11,8 @@ const {
 } = require("./chains");
 const { BASE_ROUTER_ABI, PLS_ROUTER_ABI, ETH_ROUTER_ABI, ERC20_ABI } = require("./core/abi");
 const { getProtocolFeeBps } = require("./core/protocolFee");
+const { EmpxError, ERROR_CODES }  = require("./core/errors");
+const { TOOL_SCHEMAS } = require("./agent/schemas");
 
 // ─── Chain ID constants (named exports for convenience) ───────────────────────
 const CHAIN_IDS = {
@@ -57,6 +60,14 @@ module.exports = {
     CHAIN_IDS,
     CHAINS,
     getProtocolFeeBps,
+
+    // ── Agent / AI compatibility ─────────────────────────────────────────────
+    /** JSON Schema definitions for core SDK methods */
+    TOOL_SCHEMAS,
+    /** Structured error class — catch and call .toJSON() for machine-readable error payloads */
+    EmpxError,
+    /** Error codes for branching on specific failure types */
+    ERROR_CODES,
 
     // ── ABIs (for integrators who need raw contract access) ───────────────────
     // BASE_ROUTER_ABI  — shared functions present on every chain
