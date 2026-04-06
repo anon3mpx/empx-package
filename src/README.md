@@ -78,6 +78,9 @@ const openAiTool = {
 | Sei         | 1329     | SEI          |
 | Berachain   | 80094    | BERA         |
 | Rootstock   | 30       | RBTC         |
+| EthPOW      | 10001    | ETHW         |
+| HyperEVM    | 999      | HYPE         |
+
 
 ---
 
@@ -154,6 +157,8 @@ CHAIN_IDS.SONIC       // 146
 CHAIN_IDS.SEI         // 1329
 CHAIN_IDS.BERACHAIN   // 80094
 CHAIN_IDS.ROOTSTOCK   // 30
+CHAIN_IDS.ETHW        // 10001
+CHAIN_IDS.HYPEREVM    // 999
 ```
 
 ### Protocol Fee (Read-Only)

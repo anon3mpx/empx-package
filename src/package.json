@@ -1,6 +1,6 @@
 {
   "name": "empx-swap-sdk-beta",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Multi-chain DEX router SDK for no-split pathfinding, calldata generation, and USD quotes across EVM chains.",
   "main": "index.js",
   "types": "index.d.ts",
