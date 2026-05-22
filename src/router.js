@@ -29,6 +29,32 @@ const {
 
 const SDK_VERSION = require("./package.json").version;
 
+function safeRandomUUID() {
+    if (typeof globalThis.crypto?.randomUUID === "function") {
+        try {
+            return globalThis.crypto.randomUUID();
+        } catch {
+            // Fall through to the local fallback if the runtime exposes
+            // `crypto` but blocks `randomUUID()` in the current context.
+        }
+    }
+
+    const bytes = new Uint8Array(16);
+    if (typeof globalThis.crypto?.getRandomValues === "function") {
+        globalThis.crypto.getRandomValues(bytes);
+    } else {
+        for (let index = 0; index < bytes.length; index++) {
+            bytes[index] = Math.floor(Math.random() * 256);
+        }
+    }
+
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+
+    const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 // ─── Quote TTL ────────────────────────────────────────────────────────────────
 const QUOTE_TTL_MS = 30_000; // 30 seconds
 
@@ -116,7 +142,7 @@ function createRouter(chainId, provider) {
             adapters:    pathResult.adapters,
             gasEstimate: pathResult.gasEstimate,
             // ── Idempotency / reproducibility ────────────────────────────────
-            quoteId:    crypto.randomUUID(),
+            quoteId:    safeRandomUUID(),
             timestamp:  now,
             validUntil: now + QUOTE_TTL_MS,
             sdkVersion: SDK_VERSION,
@@ -328,7 +354,7 @@ function createRouter(chainId, provider) {
                     path:        [chainConfig.NATIVE_ADDRESS, chainConfig.WRAPPED_NATIVE],
                     adapters:    [],
                     gasEstimate: "0",
-                    quoteId:     crypto.randomUUID(),
+                    quoteId:     safeRandomUUID(),
                     timestamp:   Date.now(),
                     validUntil:  Date.now() + QUOTE_TTL_MS,
                     sdkVersion:  SDK_VERSION,
@@ -349,7 +375,7 @@ function createRouter(chainId, provider) {
                     path:        [chainConfig.WRAPPED_NATIVE, chainConfig.NATIVE_ADDRESS],
                     adapters:    [],
                     gasEstimate: "0",
-                    quoteId:     crypto.randomUUID(),
+                    quoteId:     safeRandomUUID(),
                     timestamp:   Date.now(),
                     validUntil:  Date.now() + QUOTE_TTL_MS,
                     sdkVersion:  SDK_VERSION,

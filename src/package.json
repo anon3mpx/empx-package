@@ -27,7 +27,8 @@
     "test:calldata:tx": "node tests/testCalldataTx.js",
     "test:base:tx": "node tests/testCalldataTx.js",
     "test:quote": "node tests/testQuote.js",
-    "test:nosplit": "node tests/testNoSplit.js"
+    "test:nosplit": "node tests/testNoSplit.js",
+    "test:regression": "node tests/testRegression.js"
   },
   "keywords": [
     "defi",
