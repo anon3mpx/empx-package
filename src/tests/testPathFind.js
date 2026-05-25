@@ -31,7 +31,7 @@ async function main() {
             "1000000000000000000", // 1 BNB
             bsc.chain.NATIVE_ADDRESS,
             "0x55d398326f99059ff775485246999027b3197955", // USDT
-            "0x05f8cc8753d90d67dbb8c02118440b8283f941c9"
+            "", // recipient
         );
         console.log("Swap type:", result.swapType);
         console.log("TradeInfo:", JSON.stringify(result.tradeInfo, null, 2));

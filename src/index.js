@@ -2,14 +2,22 @@
 // Multi-chain DEX router: PulseChain, BSC, Arbitrum, Base, Polygon, Avalanche,
 // Optimism, Monad, Sonic, Sei, Berachain, Rootstock, HyperEVM, ETHW
 
-const { createRouter } = require("./router");
+const { createRouter, createAffiliateRouter } = require("./router");
 const {
     getChainConfig: getChainConfigInternal,
     getAllChains: getAllChainsInternal,
     getSupportedChainIds,
     CHAINS,
 } = require("./chains");
-const { BASE_ROUTER_ABI, PLS_ROUTER_ABI, ETH_ROUTER_ABI, ERC20_ABI } = require("./core/abi");
+const {
+    BASE_ROUTER_ABI,
+    PLS_ROUTER_ABI,
+    ETH_ROUTER_ABI,
+    BASE_INTEGRATOR_ROUTER_ABI,
+    PLS_INTEGRATOR_ROUTER_ABI,
+    ETH_INTEGRATOR_ROUTER_ABI,
+    ERC20_ABI,
+} = require("./core/abi");
 const { getProtocolFeeBps } = require("./core/protocolFee");
 const { EmpxError, ERROR_CODES }  = require("./core/errors");
 const { TOOL_SCHEMAS } = require("./agent/schemas");
@@ -52,6 +60,7 @@ function getAllChains() {
 module.exports = {
     // ── Primary API ───────────────────────────────────────────────────────────
     createRouter,
+    createAffiliateRouter,
 
     // ── Chain registry ────────────────────────────────────────────────────────
     getChainConfig,
@@ -76,5 +85,8 @@ module.exports = {
     BASE_ROUTER_ABI,
     PLS_ROUTER_ABI,
     ETH_ROUTER_ABI,
+    BASE_INTEGRATOR_ROUTER_ABI,
+    PLS_INTEGRATOR_ROUTER_ABI,
+    ETH_INTEGRATOR_ROUTER_ABI,
     ERC20_ABI,
 };
