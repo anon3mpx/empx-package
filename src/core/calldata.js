@@ -9,7 +9,11 @@
 // chainConfig.routerAbi and chainConfig.nativeSwapFns — no names hard-coded here.
 
 const { ethers, isAddress } = require("ethers");
-const { ERC20_ABI } = require("./abi");
+const {
+    ERC20_ABI,
+    PLS_INTEGRATOR_ROUTER_ABI,
+    ETH_INTEGRATOR_ROUTER_ABI,
+} = require("./abi");
 const { getProtocolFeeBps, normalizeProtocolFeeBps } = require("./protocolFee");
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -34,6 +38,13 @@ function validateChainConfig(chainConfig) {
     if (!chainConfig?.routerAbi) throw new Error("chainConfig.routerAbi is required");
     if (!chainConfig?.nativeSwapFns) throw new Error("chainConfig.nativeSwapFns is required");
     if (!chainConfig?.ROUTER_ADDRESS) throw new Error("chainConfig.ROUTER_ADDRESS is required");
+}
+
+function resolveIntegratorRouterAbi(chainConfig) {
+    validateChainConfig(chainConfig);
+    return chainConfig.nativeSwapFns.fromNative === "swapNoSplitFromPLS"
+        ? PLS_INTEGRATOR_ROUTER_ABI
+        : ETH_INTEGRATOR_ROUTER_ABI;
 }
 
 function resolveProtocolFeeBps(tradeInfo) {
@@ -153,6 +164,51 @@ function getSwapToNativeCalldata(tradeInfo, toAddress, chainConfig) {
     );
 }
 
+// ─── Affiliate / Integrator router swap calldata ────────────────────────────
+
+function getAffiliateSwapCalldata(tradeInfo, toAddress, integratorId, chainConfig) {
+    validateTradeInfo(tradeInfo);
+    validateAddress(toAddress, "toAddress");
+    validateChainConfig(chainConfig);
+    const fee = resolveProtocolFeeBps(tradeInfo);
+
+    return encodeCalldata(
+        resolveIntegratorRouterAbi(chainConfig),
+        chainConfig.ROUTER_ADDRESS,
+        "swapNoSplit",
+        [buildTradeStruct(tradeInfo), toAddress, fee, integratorId]
+    );
+}
+
+function getAffiliateSwapFromNativeCalldata(tradeInfo, toAddress, integratorId, chainConfig) {
+    validateTradeInfo(tradeInfo);
+    validateAddress(toAddress, "toAddress");
+    validateChainConfig(chainConfig);
+    const fee = resolveProtocolFeeBps(tradeInfo);
+
+    return encodeCalldata(
+        resolveIntegratorRouterAbi(chainConfig),
+        chainConfig.ROUTER_ADDRESS,
+        chainConfig.nativeSwapFns.fromNative,
+        [buildTradeStruct(tradeInfo), toAddress, fee, integratorId],
+        tradeInfo.amountIn
+    );
+}
+
+function getAffiliateSwapToNativeCalldata(tradeInfo, toAddress, integratorId, chainConfig) {
+    validateTradeInfo(tradeInfo);
+    validateAddress(toAddress, "toAddress");
+    validateChainConfig(chainConfig);
+    const fee = resolveProtocolFeeBps(tradeInfo);
+
+    return encodeCalldata(
+        resolveIntegratorRouterAbi(chainConfig),
+        chainConfig.ROUTER_ADDRESS,
+        chainConfig.nativeSwapFns.toNative,
+        [buildTradeStruct(tradeInfo), toAddress, fee, integratorId]
+    );
+}
+
 // ─── Wrap / Unwrap (native ↔ wrapped) ────────────────────────────────────────
 
 /**
@@ -222,6 +278,9 @@ module.exports = {
     getSwapCalldata,
     getSwapFromNativeCalldata,
     getSwapToNativeCalldata,
+    getAffiliateSwapCalldata,
+    getAffiliateSwapFromNativeCalldata,
+    getAffiliateSwapToNativeCalldata,
     getWrapCalldata,
     getUnwrapCalldata,
     getApprovalCalldata,

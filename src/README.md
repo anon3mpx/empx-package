@@ -142,6 +142,29 @@ const router = createRouter(CHAIN_IDS.BSC, "https://my-bsc-node.com");
 const router = createRouter(CHAIN_IDS.POLYGON, myProvider);
 ```
 
+## createAffiliateRouter(chainId, integratorId, provider?)
+
+Affiliate / integrator entry point. Returns a router bound to a single `integratorId`, and all router swap calldata methods encode the affiliate router ABI variant automatically.
+
+```javascript
+const { createAffiliateRouter, CHAIN_IDS } = require("empx-swap-sdk-beta");
+
+const affiliateRouter = createAffiliateRouter(
+    CHAIN_IDS.BASE,
+    "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+);
+
+const tradeInfo = await affiliateRouter.getTradeInfo(
+    "1000000000000000000",
+    "0xTokenIn",
+    "0xTokenOut"
+);
+
+const calldata = affiliateRouter.getSwapCalldata(tradeInfo, "0xRecipient");
+```
+
+`integratorId` must be a `bytes32` hex string. The SDK validates it at router creation time and throws if it is invalid.
+
 ### CHAIN_IDS
 
 ```javascript

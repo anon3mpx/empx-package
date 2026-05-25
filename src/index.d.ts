@@ -169,6 +169,42 @@ export interface EmpxRouter {
     getTokenSymbol(tokenAddress: string): Promise<string>;
 }
 
+export interface EmpxAffiliateRouter {
+    chain:    ChainInfo;
+    provider: Provider;
+
+    findBestPath(amountIn: string | bigint, tokenIn: string, tokenOut: string, maxSteps?: number): Promise<PathResult>;
+    getTradeInfo(
+        amountIn:     string | bigint,
+        tokenIn:      string,
+        tokenOut:     string,
+        maxSteps?:    number,
+        slippageBps?: number,
+    ): Promise<TradeInfo>;
+
+    checkAllowance(tokenAddress: string, ownerAddress: string, requiredAmount: string | bigint): Promise<AllowanceResult>;
+
+    getSwapCalldata(tradeInfo: TradeInfo, toAddress: string): CalldataResult;
+    getSwapFromNativeCalldata(tradeInfo: TradeInfo, toAddress: string): CalldataResult;
+    getSwapToNativeCalldata(tradeInfo: TradeInfo, toAddress: string): CalldataResult;
+    getApprovalCalldata(tokenAddress: string, amount?: string | bigint): CalldataResult;
+
+    swap(
+        amountIn:     string | bigint,
+        tokenIn:      string,
+        tokenOut:     string,
+        toAddress:    string,
+        maxSteps?:    number,
+        slippageBps?: number,
+    ): Promise<SwapResult>;
+
+    getTokenPriceUSD(tokenAddress: string, maxSteps?: number): Promise<number>;
+    getQuoteUSD(tokenAddress: string, rawAmount: string | bigint, maxSteps?: number): Promise<QuoteUSDResult>;
+    getMultipleTokenPricesUSD(tokenAddresses: string[], maxSteps?: number): Promise<Record<string, number>>;
+    getTokenDecimals(tokenAddress: string): Promise<number>;
+    getTokenSymbol(tokenAddress: string): Promise<string>;
+}
+
 // ─── Chain IDs ────────────────────────────────────────────────────────────────
 
 export declare const CHAIN_IDS: {
@@ -195,6 +231,12 @@ export declare function createRouter(
     provider?: string | Provider,
 ): EmpxRouter;
 
+export declare function createAffiliateRouter(
+    chainId: number,
+    integratorId: string,
+    provider?: string | Provider,
+): EmpxAffiliateRouter;
+
 export declare function getChainConfig(chainId: number): ChainInfo;
 export declare function getAllChains(): ChainInfo[];
 export declare function getSupportedChainIds(): number[];
@@ -204,4 +246,7 @@ export declare const CHAINS:          Record<number, ChainConfig>;
 export declare const BASE_ROUTER_ABI: object[];
 export declare const PLS_ROUTER_ABI:  object[];
 export declare const ETH_ROUTER_ABI:  object[];
+export declare const BASE_INTEGRATOR_ROUTER_ABI: object[];
+export declare const PLS_INTEGRATOR_ROUTER_ABI:  object[];
+export declare const ETH_INTEGRATOR_ROUTER_ABI:  object[];
 export declare const ERC20_ABI:       object[];
