@@ -165,6 +165,22 @@ const calldata = affiliateRouter.getSwapCalldata(tradeInfo, "0xRecipient");
 
 `integratorId` must be a `bytes32` hex string. The SDK validates it at router creation time and throws if it is invalid.
 
+## Registration Process
+
+To register as an integrator and obtain your `integratorId`, contact the EmpX team with the following details:
+
+- Protocol Name: name of your project
+- Contact Details: email, Discord, X (Twitter), Telegram, and website
+
+Registration contacts:
+
+- Telegram: `t.me/EmpXEmpseal`
+- X (Twitter): `@EmpXio`
+
+> **Note:** Affiliate support is currently available only on **PulseChain**, **Sonic**, **Base**, and **Monad**.
+
+
+
 ### CHAIN_IDS
 
 ```javascript
