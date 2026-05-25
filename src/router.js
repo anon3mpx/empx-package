@@ -1,14 +1,18 @@
 // ─── Router Factory ───────────────────────────────────────────────────────────
 // createRouter(chainId, providerOrRpc?) returns a fully-bound router instance.
 
-const { ethers }  = require("ethers");
+const { ethers } = require("ethers");
 const { getChainConfig } = require("./chains");
-const { findBestPath }   = require("./core/pathfinder");
+const { applyAffiliateChainOverrides } = require("./affiliate/chains");
+const { findBestPath } = require("./core/pathfinder");
 const { getProtocolFeeBps } = require("./core/protocolFee");
 const {
     getSwapCalldata,
     getSwapFromNativeCalldata,
     getSwapToNativeCalldata,
+    getAffiliateSwapCalldata,
+    getAffiliateSwapFromNativeCalldata,
+    getAffiliateSwapToNativeCalldata,
     getWrapCalldata,
     getUnwrapCalldata,
     getApprovalCalldata,
@@ -20,7 +24,7 @@ const {
     getTokenDecimals,
     getTokenSymbol,
 } = require("./core/quotes");
-const { ERC20_ABI }           = require("./core/abi");
+const { ERC20_ABI } = require("./core/abi");
 const { EmpxError, ERROR_CODES } = require("./core/errors");
 const {
     validateTradeParams,
@@ -29,24 +33,58 @@ const {
 
 const SDK_VERSION = require("./package.json").version;
 
+function safeRandomUUID() {
+    if (typeof globalThis.crypto?.randomUUID === "function") {
+        try {
+            return globalThis.crypto.randomUUID();
+        } catch {
+            // Fall through to the local fallback if the runtime exposes
+            // `crypto` but blocks `randomUUID()` in the current context.
+        }
+    }
+
+    const bytes = new Uint8Array(16);
+    if (typeof globalThis.crypto?.getRandomValues === "function") {
+        globalThis.crypto.getRandomValues(bytes);
+    } else {
+        for (let index = 0; index < bytes.length; index++) {
+            bytes[index] = Math.floor(Math.random() * 256);
+        }
+    }
+
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+
+    const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 // ─── Quote TTL ────────────────────────────────────────────────────────────────
 const QUOTE_TTL_MS = 30_000; // 30 seconds
 
-/**
- * Creates a router instance scoped to a specific chain.
- *
- * @param {number}                  chainId    - Chain ID (e.g. 369, 56, 42161…)
- * @param {string|ethers.Provider}  [provider] - RPC URL or ethers Provider.
- *                                               Omit to use the chain's default RPC.
- * @returns {EmpxRouter}
- *
- * @example
- * const router = createRouter(369);                        // PulseChain, default RPC
- * const router = createRouter(56, "https://my-rpc.com");  // BSC, custom RPC
- * const router = createRouter(42161, existingProvider);   // Arbitrum, injected provider
- */
-function createRouter(chainId, provider) {
-    const chainConfig = getChainConfig(chainId);
+// ─── Affiliate validation ─────────────────────────────────────────────────────
+
+function validateIntegratorId(integratorId) {
+    if (typeof integratorId !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(integratorId)) {
+        throw new EmpxError(
+            ERROR_CODES.INVALID_INPUT,
+            `integratorId must be a bytes32 hex string, got: ${integratorId}`,
+            false,
+            { integratorId }
+        );
+    }
+
+    return integratorId;
+}
+
+// ─── Shared router builder ────────────────────────────────────────────────────
+// Used by both createRouter(...) and createAffiliateRouter(...).
+
+function buildRouter(chainId, provider, integratorId) {
+    const baseChainConfig = getChainConfig(chainId);
+    const chainConfig = integratorId == null
+        ? baseChainConfig
+        : applyAffiliateChainOverrides(baseChainConfig);
 
     // ─── Resolve provider ─────────────────────────────────────────────────────
     let _provider;
@@ -62,8 +100,8 @@ function createRouter(chainId, provider) {
 
     function applyProtocolFee(amountIn, protocolFeeBps) {
         const amount = BigInt(amountIn);
-        const fee    = BigInt(protocolFeeBps);
-        return (amount * (BigInt(10000) - fee)) / BigInt(10000);
+        const fee = BigInt(protocolFeeBps);
+        return (amount * (10000n - fee)) / 10000n;
     }
 
     function hasTokenCycle(path) {
@@ -89,6 +127,7 @@ function createRouter(chainId, provider) {
                     // Keep trying with fewer steps.
                 }
             }
+
             return primary;
         } catch (err) {
             // Wrap RPC-level errors in structured EmpxError
@@ -96,7 +135,7 @@ function createRouter(chainId, provider) {
             throw new EmpxError(
                 ERROR_CODES.NO_ROUTE_FOUND,
                 err.message || "Failed to find a swap route",
-                true, // retryable — may be a transient RPC issue
+                true,
                 { tokenIn, tokenOut, maxSteps }
             );
         }
@@ -104,44 +143,79 @@ function createRouter(chainId, provider) {
 
     function buildTradeInfo(pathResult, slippageBps, protocolFeeBps, originalAmountIn) {
         const rawAmountOut = BigInt(pathResult.amounts[pathResult.amounts.length - 1]);
-        const amountOut    = (rawAmountOut * BigInt(10000 - slippageBps)) / BigInt(10000);
-
+        const amountOut = (rawAmountOut * BigInt(10000 - slippageBps)) / 10000n;
         const now = Date.now();
+
         return {
-            amountIn:    originalAmountIn.toString(),
-            amountOut:   amountOut.toString(),
-            fee:         protocolFeeBps.toString(),
-            amounts:     pathResult.amounts,
-            path:        pathResult.path,
-            adapters:    pathResult.adapters,
+            amountIn: originalAmountIn.toString(),
+            amountOut: amountOut.toString(),
+            fee: protocolFeeBps.toString(),
+            amounts: pathResult.amounts,
+            path: pathResult.path,
+            adapters: pathResult.adapters,
             gasEstimate: pathResult.gasEstimate,
             // ── Idempotency / reproducibility ────────────────────────────────
-            quoteId:    crypto.randomUUID(),
-            timestamp:  now,
+            quoteId: safeRandomUUID(),
+            timestamp: now,
+            validUntil: now + QUOTE_TTL_MS,
+            sdkVersion: SDK_VERSION,
+        };
+    }
+
+    // Wrap / unwrap paths still produce synthetic tradeInfo payloads so callers
+    // receive the same shape as routed swaps.
+    function buildWrapTradeInfo(amountIn, path) {
+        const now = Date.now();
+        return {
+            amountIn: amountIn.toString(),
+            amountOut: amountIn.toString(),
+            fee: "0",
+            amounts: [amountIn.toString(), amountIn.toString()],
+            path,
+            adapters: [],
+            gasEstimate: "0",
+            quoteId: safeRandomUUID(),
+            timestamp: now,
             validUntil: now + QUOTE_TTL_MS,
             sdkVersion: SDK_VERSION,
         };
     }
 
     async function checkAllowanceInternal(tokenAddress, ownerAddress, requiredAmount) {
-        const token     = new ethers.Contract(tokenAddress, ERC20_ABI, _provider);
+        const token = new ethers.Contract(tokenAddress, ERC20_ABI, _provider);
         const allowance = await token.allowance(ownerAddress, chainConfig.ROUTER_ADDRESS);
         return {
-            approved:  allowance >= BigInt(requiredAmount),
+            approved: allowance >= BigInt(requiredAmount),
             allowance: allowance.toString(),
         };
+    }
+
+    function buildSwapCalldata(tradeInfo, toAddress) {
+        assertQuoteNotExpired(tradeInfo);
+        return integratorId == null
+            ? getSwapCalldata(tradeInfo, toAddress, chainConfig)
+            : getAffiliateSwapCalldata(tradeInfo, toAddress, integratorId, chainConfig);
+    }
+
+    function buildSwapFromNativeCalldata(tradeInfo, toAddress) {
+        assertQuoteNotExpired(tradeInfo);
+        return integratorId == null
+            ? getSwapFromNativeCalldata(tradeInfo, toAddress, chainConfig)
+            : getAffiliateSwapFromNativeCalldata(tradeInfo, toAddress, integratorId, chainConfig);
+    }
+
+    function buildSwapToNativeCalldata(tradeInfo, toAddress) {
+        assertQuoteNotExpired(tradeInfo);
+        return integratorId == null
+            ? getSwapToNativeCalldata(tradeInfo, toAddress, chainConfig)
+            : getAffiliateSwapToNativeCalldata(tradeInfo, toAddress, integratorId, chainConfig);
     }
 
     // ─── Public API ───────────────────────────────────────────────────────────
 
     const router = {
-
         // ── Metadata ──────────────────────────────────────────────────────────
-
-        /** The chain config this router is scoped to. */
         chain: chainConfig,
-
-        /** The underlying ethers.js provider. */
         provider: _provider,
 
         // ── Path finding ──────────────────────────────────────────────────────
@@ -165,7 +239,7 @@ function createRouter(chainId, provider) {
          * Routing is computed using the fee-adjusted input amount and prefers
          * non-cyclic token paths when available.
          *
-         * TradeInfo now includes:
+         * TradeInfo includes:
          * - `quoteId`    — unique ID for traceability
          * - `validUntil` — TTL timestamp (30s); validate before building calldata
          * - `sdkVersion` — SDK version that produced this quote
@@ -180,14 +254,18 @@ function createRouter(chainId, provider) {
         async getTradeInfo(amountIn, tokenIn, tokenOut, maxSteps = 3, slippageBps = 200) {
             // ── Validate inputs ───────────────────────────────────────────────
             validateTradeParams({
-                amountIn, tokenIn, tokenOut, maxSteps, slippageBps,
+                amountIn,
+                tokenIn,
+                tokenOut,
+                maxSteps,
+                slippageBps,
                 nativeAddress: chainConfig.NATIVE_ADDRESS,
             });
 
-            const normalizedFee     = getProtocolFeeBps();
+            const normalizedFee = getProtocolFeeBps();
             const effectiveAmountIn = applyProtocolFee(amountIn, normalizedFee);
 
-            if (effectiveAmountIn <= BigInt(0)) {
+            if (effectiveAmountIn <= 0n) {
                 throw new EmpxError(
                     ERROR_CODES.AMOUNT_TOO_SMALL,
                     "amountIn is too small after protocol fee deduction",
@@ -197,8 +275,7 @@ function createRouter(chainId, provider) {
             }
 
             const pathResult = await findBestPathPreferAcyclic(effectiveAmountIn, tokenIn, tokenOut, maxSteps);
-            const tradeInfo  = buildTradeInfo(pathResult, slippageBps, normalizedFee, amountIn);
-            return tradeInfo;
+            return buildTradeInfo(pathResult, slippageBps, normalizedFee, amountIn);
         },
 
         // ── Allowance ─────────────────────────────────────────────────────────
@@ -219,64 +296,41 @@ function createRouter(chainId, provider) {
         // ── Calldata builders ─────────────────────────────────────────────────
 
         /**
-         * Calldata for ERC-20 → ERC-20 swap (swapNoSplit).
-         * Ensure the router is approved to spend tokenIn before submitting.
+         * Calldata for ERC-20 → ERC-20 swap.
+         * In affiliate mode, encodes the integrator-aware ABI variant automatically.
          *
          * @param {object} tradeInfo
          * @param {string} toAddress
          * @returns {{ to: string, data: string, value: string }}
          */
         getSwapCalldata(tradeInfo, toAddress) {
-            assertQuoteNotExpired(tradeInfo);
-            return getSwapCalldata(tradeInfo, toAddress, chainConfig);
+            return buildSwapCalldata(tradeInfo, toAddress);
         },
 
         /**
          * Calldata for Native → ERC-20 swap.
-         *   PulseChain   → swapNoSplitFromPLS
-         *   Other chains → swapNoSplitFromETH
+         * PulseChain uses `swapNoSplitFromPLS`; other chains use `swapNoSplitFromETH`.
+         * In affiliate mode, the bound integratorId is appended as the final argument.
          *
          * @param {object} tradeInfo
          * @param {string} toAddress
          * @returns {{ to: string, data: string, value: string }}
          */
         getSwapFromNativeCalldata(tradeInfo, toAddress) {
-            assertQuoteNotExpired(tradeInfo);
-            return getSwapFromNativeCalldata(tradeInfo, toAddress, chainConfig);
+            return buildSwapFromNativeCalldata(tradeInfo, toAddress);
         },
 
         /**
          * Calldata for ERC-20 → Native swap.
-         *   PulseChain   → swapNoSplitToPLS
-         *   Other chains → swapNoSplitToETH
+         * PulseChain uses `swapNoSplitToPLS`; other chains use `swapNoSplitToETH`.
+         * In affiliate mode, the bound integratorId is appended as the final argument.
          *
          * @param {object} tradeInfo
          * @param {string} toAddress
          * @returns {{ to: string, data: string, value: string }}
          */
         getSwapToNativeCalldata(tradeInfo, toAddress) {
-            assertQuoteNotExpired(tradeInfo);
-            return getSwapToNativeCalldata(tradeInfo, toAddress, chainConfig);
-        },
-
-        /**
-         * Calldata to wrap native currency (e.g. PLS → WPLS, ETH → WETH).
-         *
-         * @param {{ amountIn: string }} tradeInfo
-         * @returns {{ to: string, data: string, value: string }}
-         */
-        getWrapCalldata(tradeInfo) {
-            return getWrapCalldata(tradeInfo, chainConfig.WRAPPED_NATIVE);
-        },
-
-        /**
-         * Calldata to unwrap native currency (e.g. WPLS → PLS, WETH → ETH).
-         *
-         * @param {{ amountIn: string }} tradeInfo
-         * @returns {{ to: string, data: string, value: string }}
-         */
-        getUnwrapCalldata(tradeInfo) {
-            return getUnwrapCalldata(tradeInfo, chainConfig.WRAPPED_NATIVE);
+            return buildSwapToNativeCalldata(tradeInfo, toAddress);
         },
 
         /**
@@ -299,6 +353,7 @@ function createRouter(chainId, provider) {
          *
          * Does NOT submit the transaction — returns calldata for the caller to send.
          * For ERC-20 input, call checkAllowance() first and send an approval if needed.
+         * Affiliate routers automatically encode the integrator-aware router ABI.
          *
          * @param {string|bigint} amountIn
          * @param {string}        tokenIn       - Use chain.NATIVE_ADDRESS for native
@@ -310,73 +365,68 @@ function createRouter(chainId, provider) {
          */
         async swap(amountIn, tokenIn, tokenOut, toAddress, maxSteps = 3, slippageBps = 200) {
             validateTradeParams({
-                amountIn, tokenIn, tokenOut, maxSteps, slippageBps,
+                amountIn,
+                tokenIn,
+                tokenOut,
+                maxSteps,
+                slippageBps,
                 nativeAddress: chainConfig.NATIVE_ADDRESS,
             });
 
-            const isNativeIn   = tokenIn.toLowerCase()  === chainConfig.NATIVE_ADDRESS.toLowerCase();
-            const isNativeOut  = tokenOut.toLowerCase() === chainConfig.NATIVE_ADDRESS.toLowerCase();
-            const isWrappedIn  = tokenIn.toLowerCase()  === chainConfig.WRAPPED_NATIVE.toLowerCase();
+            const isNativeIn = tokenIn.toLowerCase() === chainConfig.NATIVE_ADDRESS.toLowerCase();
+            const isNativeOut = tokenOut.toLowerCase() === chainConfig.NATIVE_ADDRESS.toLowerCase();
+            const isWrappedIn = tokenIn.toLowerCase() === chainConfig.WRAPPED_NATIVE.toLowerCase();
             const isWrappedOut = tokenOut.toLowerCase() === chainConfig.WRAPPED_NATIVE.toLowerCase();
 
             if (isNativeIn && isWrappedOut) {
-                const tradeInfo = {
-                    amountIn:    amountIn.toString(),
-                    amountOut:   amountIn.toString(),
-                    fee:         "0",
-                    amounts:     [amountIn.toString(), amountIn.toString()],
-                    path:        [chainConfig.NATIVE_ADDRESS, chainConfig.WRAPPED_NATIVE],
-                    adapters:    [],
-                    gasEstimate: "0",
-                    quoteId:     crypto.randomUUID(),
-                    timestamp:   Date.now(),
-                    validUntil:  Date.now() + QUOTE_TTL_MS,
-                    sdkVersion:  SDK_VERSION,
-                };
+                const tradeInfo = buildWrapTradeInfo(amountIn, [
+                    chainConfig.NATIVE_ADDRESS,
+                    chainConfig.WRAPPED_NATIVE,
+                ]);
+
                 return {
                     tradeInfo,
-                    calldata: this.getWrapCalldata({ amountIn: tradeInfo.amountIn }),
+                    calldata: getWrapCalldata({ amountIn: tradeInfo.amountIn }, chainConfig.WRAPPED_NATIVE),
                     swapType: "WrapNative",
                 };
             }
 
             if (isWrappedIn && isNativeOut) {
-                const tradeInfo = {
-                    amountIn:    amountIn.toString(),
-                    amountOut:   amountIn.toString(),
-                    fee:         "0",
-                    amounts:     [amountIn.toString(), amountIn.toString()],
-                    path:        [chainConfig.WRAPPED_NATIVE, chainConfig.NATIVE_ADDRESS],
-                    adapters:    [],
-                    gasEstimate: "0",
-                    quoteId:     crypto.randomUUID(),
-                    timestamp:   Date.now(),
-                    validUntil:  Date.now() + QUOTE_TTL_MS,
-                    sdkVersion:  SDK_VERSION,
-                };
+                const tradeInfo = buildWrapTradeInfo(amountIn, [
+                    chainConfig.WRAPPED_NATIVE,
+                    chainConfig.NATIVE_ADDRESS,
+                ]);
+
                 return {
                     tradeInfo,
-                    calldata: this.getUnwrapCalldata({ amountIn: tradeInfo.amountIn }),
+                    calldata: getUnwrapCalldata({ amountIn: tradeInfo.amountIn }, chainConfig.WRAPPED_NATIVE),
                     swapType: "UnwrapNative",
                 };
             }
 
             const tradeInfo = await this.getTradeInfo(amountIn, tokenIn, tokenOut, maxSteps, slippageBps);
 
-            let calldata, swapType;
-
-            if (isNativeIn && !isNativeOut) {
-                calldata = this.getSwapFromNativeCalldata(tradeInfo, toAddress);
-                swapType = "NativeToERC20";
-            } else if (!isNativeIn && isNativeOut) {
-                calldata = this.getSwapToNativeCalldata(tradeInfo, toAddress);
-                swapType = "ERC20ToNative";
-            } else {
-                calldata = this.getSwapCalldata(tradeInfo, toAddress);
-                swapType = "ERC20ToERC20";
+            if (isNativeIn) {
+                return {
+                    tradeInfo,
+                    calldata: buildSwapFromNativeCalldata(tradeInfo, toAddress),
+                    swapType: "NativeToERC20",
+                };
             }
 
-            return { tradeInfo, calldata, swapType };
+            if (isNativeOut) {
+                return {
+                    tradeInfo,
+                    calldata: buildSwapToNativeCalldata(tradeInfo, toAddress),
+                    swapType: "ERC20ToNative",
+                };
+            }
+
+            return {
+                tradeInfo,
+                calldata: buildSwapCalldata(tradeInfo, toAddress),
+                swapType: "ERC20ToERC20",
+            };
         },
 
         // ── USD price quotes ──────────────────────────────────────────────────
@@ -436,7 +486,42 @@ function createRouter(chainId, provider) {
         },
     };
 
+    // Only the base router exposes standalone wrap / unwrap builders.
+    if (integratorId == null) {
+        router.getWrapCalldata = function getWrapRouterCalldata(tradeInfo) {
+            return getWrapCalldata(tradeInfo, chainConfig.WRAPPED_NATIVE);
+        };
+
+        router.getUnwrapCalldata = function getUnwrapRouterCalldata(tradeInfo) {
+            return getUnwrapCalldata(tradeInfo, chainConfig.WRAPPED_NATIVE);
+        };
+    }
+
     return router;
 }
 
-module.exports = { createRouter };
+/**
+ * Creates a router instance scoped to a specific chain.
+ *
+ * @param {number}                  chainId    - Chain ID (e.g. 369, 56, 42161…)
+ * @param {string|ethers.Provider}  [provider] - RPC URL or ethers Provider.
+ *                                               Omit to use the chain's default RPC.
+ * @returns {EmpxRouter}
+ */
+function createRouter(chainId, provider) {
+    return buildRouter(chainId, provider);
+}
+
+/**
+ * Creates an affiliate-aware router instance bound to a single integratorId.
+ *
+ * @param {number}                  chainId
+ * @param {string}                  integratorId - bytes32 hex string
+ * @param {string|ethers.Provider}  [provider]
+ * @returns {EmpxAffiliateRouter}
+ */
+function createAffiliateRouter(chainId, integratorId, provider) {
+    return buildRouter(chainId, provider, validateIntegratorId(integratorId));
+}
+
+module.exports = { createRouter, createAffiliateRouter };

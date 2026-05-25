@@ -24,10 +24,13 @@
     "build": "npm pack --dry-run --cache ./.npm-cache",
     "prepublishOnly": "npm run build",
     "test": "node tests/testPathFind.js",
+    "test:affiliate": "node tests/testAffiliateRouter.js",
+    "test:affiliate:tx": "node tests/testAffiliateCalldataTx.js",
     "test:calldata:tx": "node tests/testCalldataTx.js",
     "test:base:tx": "node tests/testCalldataTx.js",
     "test:quote": "node tests/testQuote.js",
-    "test:nosplit": "node tests/testNoSplit.js"
+    "test:nosplit": "node tests/testNoSplit.js",
+    "test:regression": "node tests/testRegression.js"
   },
   "keywords": [
     "defi",

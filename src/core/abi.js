@@ -23,6 +23,12 @@ const TRADE_TUPLE = {
     ],
 };
 
+const INTEGRATOR_ID_INPUT = {
+    name: "_integratorId",
+    internalType: "bytes32",
+    type: "bytes32",
+};
+
 // ─── BASE ABI (identical on every chain) ─────────────────────────────────────
 
 const BASE_ROUTER_ABI = [
@@ -540,6 +546,77 @@ const ETH_ROUTER_ABI = [
     },
 ];
 
+// ─── Integrator-aware ABI variants ───────────────────────────────────────────
+
+const BASE_INTEGRATOR_ROUTER_ABI = BASE_ROUTER_ABI.map((entry) => {
+    if (entry?.type !== "function" || entry.name !== "swapNoSplit") return entry;
+    return {
+        ...entry,
+        inputs: [
+            TRADE_TUPLE,
+            { internalType: "address", name: "_to", type: "address" },
+            { internalType: "uint256", name: "_fee", type: "uint256" },
+            INTEGRATOR_ID_INPUT,
+        ],
+    };
+});
+
+const PLS_INTEGRATOR_ROUTER_ABI = [
+    ...BASE_INTEGRATOR_ROUTER_ABI,
+    {
+        inputs: [
+            TRADE_TUPLE,
+            { internalType: "address", name: "_to", type: "address" },
+            { internalType: "uint256", name: "_fee", type: "uint256" },
+            INTEGRATOR_ID_INPUT,
+        ],
+        name: "swapNoSplitFromPLS",
+        outputs: [],
+        stateMutability: "payable",
+        type: "function",
+    },
+    {
+        inputs: [
+            TRADE_TUPLE,
+            { internalType: "address", name: "_to", type: "address" },
+            { internalType: "uint256", name: "_fee", type: "uint256" },
+            INTEGRATOR_ID_INPUT,
+        ],
+        name: "swapNoSplitToPLS",
+        outputs: [],
+        stateMutability: "nonpayable",
+        type: "function",
+    },
+];
+
+const ETH_INTEGRATOR_ROUTER_ABI = [
+    ...BASE_INTEGRATOR_ROUTER_ABI,
+    {
+        inputs: [
+            TRADE_TUPLE,
+            { internalType: "address", name: "_to", type: "address" },
+            { internalType: "uint256", name: "_fee", type: "uint256" },
+            INTEGRATOR_ID_INPUT,
+        ],
+        name: "swapNoSplitFromETH",
+        outputs: [],
+        stateMutability: "payable",
+        type: "function",
+    },
+    {
+        inputs: [
+            TRADE_TUPLE,
+            { internalType: "address", name: "_to", type: "address" },
+            { internalType: "uint256", name: "_fee", type: "uint256" },
+            INTEGRATOR_ID_INPUT,
+        ],
+        name: "swapNoSplitToETH",
+        outputs: [],
+        stateMutability: "nonpayable",
+        type: "function",
+    },
+];
+
 // ─── ERC-20 ABI ───────────────────────────────────────────────────────────────
 
 const ERC20_ABI = [
@@ -601,4 +678,12 @@ const ERC20_ABI = [
     },
 ];
 
-module.exports = { BASE_ROUTER_ABI, PLS_ROUTER_ABI, ETH_ROUTER_ABI, ERC20_ABI };
+module.exports = {
+    BASE_ROUTER_ABI,
+    PLS_ROUTER_ABI,
+    ETH_ROUTER_ABI,
+    BASE_INTEGRATOR_ROUTER_ABI,
+    PLS_INTEGRATOR_ROUTER_ABI,
+    ETH_INTEGRATOR_ROUTER_ABI,
+    ERC20_ABI,
+};

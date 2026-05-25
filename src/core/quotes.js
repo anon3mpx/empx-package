@@ -1,12 +1,90 @@
 // ─── Price Quotes ─────────────────────────────────────────────────────────────
 // Estimates USD value of tokens using on-chain path routing to a stable reference.
 
-const { ethers } = require("ethers");
+const { ethers, formatUnits } = require("ethers");
 const { findBestPath } = require("./pathfinder");
 const { ERC20_ABI } = require("./abi");
 
 // Cache token decimals to avoid repeat RPC calls within a session
 const _decimalsCache = new Map();
+
+function rawToDecimalString(raw, decimals) {
+    return formatUnits(BigInt(raw), Number(decimals));
+}
+
+function parseDecimal(value) {
+    const [whole, fraction = ""] = String(value).split(".");
+    return {
+        digits: BigInt(`${whole}${fraction}`),
+        scale: fraction.length,
+    };
+}
+
+function formatRoundedDecimal(digits, scale) {
+    const negative = digits < 0n;
+    const unsigned = negative ? -digits : digits;
+    const value = unsigned.toString().padStart(scale + 1, "0");
+    const whole = value.slice(0, -scale) || "0";
+    const fraction = scale > 0 ? value.slice(-scale) : "";
+    return `${negative ? "-" : ""}${whole}${fraction ? `.${fraction}` : ""}`;
+}
+
+function roundDecimalString(value, targetScale) {
+    const parsed = parseDecimal(value);
+    if (parsed.scale <= targetScale) {
+        return formatRoundedDecimal(
+            parsed.digits * (10n ** BigInt(targetScale - parsed.scale)),
+            targetScale
+        );
+    }
+
+    const divisor = 10n ** BigInt(parsed.scale - targetScale);
+    const quotient = parsed.digits / divisor;
+    const remainder = parsed.digits % divisor;
+    const rounded = remainder * 2n >= divisor ? quotient + 1n : quotient;
+    return formatRoundedDecimal(rounded, targetScale);
+}
+
+function decimalStringToNumber(value) {
+    return Number(value);
+}
+
+function roundedDecimalToNumber(value, targetScale) {
+    return decimalStringToNumber(roundDecimalString(value, targetScale));
+}
+
+function multiplyDecimalStrings(a, b, targetScale) {
+    const left = parseDecimal(a);
+    const right = parseDecimal(b);
+    const product = left.digits * right.digits;
+    return roundDecimalString(
+        formatRoundedDecimal(product, left.scale + right.scale),
+        targetScale
+    );
+}
+
+async function getTokenPriceUSDExact(provider, chainConfig, tokenAddress, maxSteps = 3) {
+    const stableAddress = chainConfig.USD_STABLE;
+    const stableDecimals = chainConfig.USD_STABLE_DECIMALS;
+
+    if (tokenAddress.toLowerCase() === stableAddress.toLowerCase()) {
+        return "1";
+    }
+
+    const tokenDecimals = await getTokenDecimals(provider, chainConfig, tokenAddress);
+    const oneUnit = BigInt(10) ** BigInt(tokenDecimals);
+
+    const path = await findBestPath(
+        provider,
+        chainConfig,
+        oneUnit.toString(),
+        tokenAddress,
+        stableAddress,
+        maxSteps
+    );
+
+    return rawToDecimalString(path.amounts[path.amounts.length - 1], stableDecimals);
+}
 
 /**
  * Fetches decimals for a given token address.
@@ -49,30 +127,8 @@ async function getTokenSymbol(provider, chainConfig, tokenAddress) {
  * @returns {Promise<number>} USD price per full token unit
  */
 async function getTokenPriceUSD(provider, chainConfig, tokenAddress, maxSteps = 3) {
-    const stableAddress = chainConfig.USD_STABLE;
-    const stableDecimals = chainConfig.USD_STABLE_DECIMALS;
-
-    // If the token IS the stable, price = $1.00
-    if (tokenAddress.toLowerCase() === stableAddress.toLowerCase()) {
-        return 1.0;
-    }
-
-    const tokenDecimals = await getTokenDecimals(provider, chainConfig, tokenAddress);
-    const oneUnit = BigInt(10) ** BigInt(tokenDecimals); // 1 full token in raw units
-
-    const path = await findBestPath(
-        provider,
-        chainConfig,
-        oneUnit.toString(),
-        tokenAddress,
-        stableAddress,
-        maxSteps
-    );
-
-    const rawOut = BigInt(path.amounts[path.amounts.length - 1]);
-    const priceUSD = Number(rawOut) / 10 ** stableDecimals;
-
-    return priceUSD;
+    const priceUSD = await getTokenPriceUSDExact(provider, chainConfig, tokenAddress, maxSteps);
+    return decimalStringToNumber(priceUSD);
 }
 
 /**
@@ -87,16 +143,15 @@ async function getTokenPriceUSD(provider, chainConfig, tokenAddress, maxSteps = 
  */
 async function getQuoteUSD(provider, chainConfig, tokenAddress, rawAmount, maxSteps = 3) {
     const decimals = await getTokenDecimals(provider, chainConfig, tokenAddress);
-    const pricePerToken = await getTokenPriceUSD(provider, chainConfig, tokenAddress, maxSteps);
-
-    const humanAmount = Number(BigInt(rawAmount)) / 10 ** decimals;
-    const usd = humanAmount * pricePerToken;
+    const pricePerTokenExact = await getTokenPriceUSDExact(provider, chainConfig, tokenAddress, maxSteps);
+    const humanAmountExact = rawToDecimalString(rawAmount, decimals);
+    const usdExact = multiplyDecimalStrings(humanAmountExact, pricePerTokenExact, 6);
 
     return {
-        usd: parseFloat(usd.toFixed(6)),
-        pricePerToken: parseFloat(pricePerToken.toFixed(6)),
+        usd: decimalStringToNumber(usdExact),
+        pricePerToken: roundedDecimalToNumber(pricePerTokenExact, 6),
         decimals,
-        humanAmount: parseFloat(humanAmount.toFixed(decimals)),
+        humanAmount: roundedDecimalToNumber(humanAmountExact, Math.min(decimals, 18)),
     };
 }
 
