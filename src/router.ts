@@ -4,10 +4,11 @@ import type { Provider } from "ethers";
 import type {
   EmpxRouter, ChainInfo, TradeInfo, PathResult, AllowanceResult,
   CalldataResult, SwapResult, QuoteUSDResult, AffiliateConfig,
-  AffiliateEarning, RouterConfig, FeeResolutionContext,
+  AffiliateEarning, RouterConfig, FeeResolutionContext, ProviderInput,
+  BatchRouterConfig,
 } from "./types.js";
 import { ERROR_CODES } from "./types.js";
-import { getChainConfig, stripRouterAbi } from "./chains/index.js";
+import { getChainConfig, getSupportedChainIds, stripRouterAbi } from "./chains/index.js";
 import { findBestPath } from "./core/pathfinder.js";
 import {
   getProtocolFeeBps, applyProtocolFee as applyFee,
@@ -56,11 +57,113 @@ function validateIntegratorId(integratorId: string): void {
   }
 }
 
+function resolveProviderInput(
+  chainId: number,
+  defaultRpcUrl: string,
+  provider?: ProviderInput
+): { provider: Provider; signer?: ethers.Signer } {
+  if (!provider) {
+    return { provider: new ethers.JsonRpcProvider(defaultRpcUrl, chainId) };
+  }
+
+  if (Array.isArray(provider)) {
+    if (provider.length === 0) {
+      throw new EmpxError(
+        ERROR_CODES.INVALID_INPUT,
+        "RPC URL fallback array must contain at least one URL",
+        false,
+        { chainId }
+      );
+    }
+
+    const configs = provider.map((url, index) => ({
+      provider: new ethers.JsonRpcProvider(url, chainId),
+      priority: index + 1,
+      stallTimeout: 1_000,
+      weight: 1,
+    }));
+
+    return {
+      provider: new ethers.FallbackProvider(configs, chainId, { quorum: 1 }),
+    };
+  }
+
+  if (typeof provider === "string") {
+    return { provider: new ethers.JsonRpcProvider(provider, chainId) };
+  }
+
+  if (provider instanceof ethers.AbstractSigner) {
+    return {
+      signer: provider,
+      provider: provider.provider ?? new ethers.JsonRpcProvider(defaultRpcUrl, chainId),
+    };
+  }
+
+  return { provider: provider as Provider };
+}
+
+function validateBatchRouterInput(chainIds: number[], config: BatchRouterConfig): void {
+  if (!Array.isArray(chainIds) || chainIds.length === 0) {
+    throw new EmpxError(
+      ERROR_CODES.INVALID_INPUT,
+      "createRouters requires at least one chain ID",
+      false,
+      { chainIds }
+    );
+  }
+
+  const seen = new Set<number>();
+  const duplicates: number[] = [];
+  for (const chainId of chainIds) {
+    if (!Number.isInteger(chainId)) {
+      throw new EmpxError(
+        ERROR_CODES.INVALID_INPUT,
+        `chainId must be an integer, got: ${chainId}`,
+        false,
+        { chainId }
+      );
+    }
+    if (seen.has(chainId)) {
+      duplicates.push(chainId);
+    }
+    seen.add(chainId);
+  }
+
+  if (duplicates.length > 0) {
+    throw new EmpxError(
+      ERROR_CODES.INVALID_INPUT,
+      `createRouters received duplicate chain IDs: ${duplicates.join(", ")}`,
+      false,
+      { duplicates }
+    );
+  }
+
+  for (const key of Object.keys(config.providers ?? {})) {
+    const providerChainId = Number(key);
+    if (!Number.isInteger(providerChainId) || !seen.has(providerChainId)) {
+      throw new EmpxError(
+        ERROR_CODES.INVALID_INPUT,
+        `Provider override chainId ${key} is not included in createRouters chainIds`,
+        false,
+        { chainIds, providerChainId: key }
+      );
+    }
+  }
+}
+
 // ─── createRouter ──────────────────────────────────────────────────────────────
 
 export function createRouter(
   chainId: number,
-  provider?: string | Provider | ethers.Signer,
+  provider?: ProviderInput,
+  config: RouterConfig = {}
+): EmpxRouter {
+  return createSingleRouter(chainId, provider, config);
+}
+
+function createSingleRouter(
+  chainId: number,
+  provider?: ProviderInput,
   config: RouterConfig = {}
 ): EmpxRouter {
   // Validate config
@@ -77,19 +180,9 @@ export function createRouter(
   const affiliateConfig: AffiliateConfig | undefined = config.affiliate;
 
   // ─── Resolve provider ────────────────────────────────────────────────────────
-  let _provider: Provider;
-  let _signer: ethers.Signer | undefined;
-
-  if (!provider) {
-    _provider = new ethers.JsonRpcProvider(chainConfig.rpcUrl);
-  } else if (typeof provider === "string") {
-    _provider = new ethers.JsonRpcProvider(provider);
-  } else if (provider instanceof ethers.AbstractSigner) {
-    _signer = provider as ethers.Signer;
-    _provider = (provider as ethers.Signer).provider ?? new ethers.JsonRpcProvider(chainConfig.rpcUrl);
-  } else {
-    _provider = provider as Provider;
-  }
+  const resolvedProvider = resolveProviderInput(chainId, chainConfig.rpcUrl, provider);
+  const _provider = resolvedProvider.provider;
+  const _signer = resolvedProvider.signer;
 
   // ─── Internal helpers ─────────────────────────────────────────────────────────
 
@@ -366,6 +459,31 @@ export function createRouter(
   return router;
 }
 
+export function createRouters(
+  chainIds: number[],
+  config: BatchRouterConfig = {}
+): Record<number, EmpxRouter> {
+  validateBatchRouterInput(chainIds, config);
+
+  const entries = chainIds.map((chainId) => {
+    const provider = config.providers?.[chainId] ?? config.defaultProvider;
+    const routerConfig: RouterConfig = {
+      integratorId: config.integratorId,
+      affiliate: config.affiliate,
+    };
+
+    return [chainId, createSingleRouter(chainId, provider, routerConfig)] as const;
+  });
+
+  return Object.fromEntries(entries);
+}
+
+export function getAllChainRouters(
+  config: BatchRouterConfig = {}
+): Record<number, EmpxRouter> {
+  return createRouters(getSupportedChainIds(), config);
+}
+
 /**
  * Convenience wrapper for V1 compat:
  * createAffiliateRouter(chainId, integratorId, provider?)
@@ -374,7 +492,7 @@ export function createRouter(
 export function createAffiliateRouter(
   chainId: number,
   integratorId: string,
-  provider?: string | Provider | ethers.Signer
+  provider?: ProviderInput
 ): EmpxRouter {
   validateIntegratorId(integratorId);
   return createRouter(chainId, provider, { integratorId });

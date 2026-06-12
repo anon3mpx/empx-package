@@ -5,6 +5,21 @@ All notable changes to this SDK are documented here. Format follows
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- **RPC fallback providers** — `createRouter()` now accepts ordered RPC URL arrays and builds an ethers `FallbackProvider` with `quorum: 1`.
+- **Batch router factories** — added `createRouters()` for explicit multi-chain router creation and `getAllChainRouters()` for all supported chains.
+- **Agent schema coverage** — added `TOOL_SCHEMAS.createRouters` and `TOOL_SCHEMAS.getAllChainRouters` for multi-chain agent workflows.
+
+### Changed
+
+- **Batch validation** — `createRouters()` now rejects empty chain lists, duplicate chain IDs, and provider override keys outside the requested chain set.
+- **README examples** — documented RPC fallback, batch router usage, all-chain router usage, and multi-chain agent guidance.
+
+---
+
 ## [2.0.0] — 2026-06-09
 
 ### Added

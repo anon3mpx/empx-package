@@ -57,6 +57,35 @@ const chainIdSchema = {
       .join(", "),
 };
 
+const chainIdsSchema = {
+  type: "array",
+  minItems: 1,
+  uniqueItems: true,
+  items: chainIdSchema,
+  description: "One or more supported EVM chain IDs. Values must be unique.",
+};
+
+const providerInputSchema = {
+  oneOf: [
+    { type: "string", description: "Single RPC URL for one chain." },
+    {
+      type: "array",
+      minItems: 1,
+      items: { type: "string" },
+      description: "Ordered fallback RPC URLs for one chain.",
+    },
+  ],
+  description:
+    "Provider input for one chain. Prefer per-chain providers because most RPC URLs are network-specific.",
+};
+
+const providerMapSchema = {
+  type: "object",
+  additionalProperties: providerInputSchema,
+  description:
+    "Map of chainId string to provider input. Keys must be included in the requested chainIds.",
+};
+
 // ─── Tool Schemas ─────────────────────────────────────────────────────────────
 
 export const TOOL_SCHEMAS: Record<string, ToolSchema & { agentHints?: string }> = {
@@ -84,6 +113,91 @@ export const TOOL_SCHEMAS: Record<string, ToolSchema & { agentHints?: string }> 
       },
     },
     agentHints: "Use this to discover chains before asking for a chainId from the user.",
+  },
+
+  createRouters: {
+    name: "createRouters",
+    description:
+      "Creates router instances for multiple supported chains in one call. " +
+      "Use this for portfolio views, cross-chain dashboards, or agent workflows that need to query several chains. " +
+      "Prefer per-chain providers because most RPC URLs are chain-specific.",
+    inputSchema: {
+      type: "object",
+      required: ["chainIds"],
+      properties: {
+        chainIds: chainIdsSchema,
+        providers: providerMapSchema,
+        defaultProvider: providerInputSchema,
+        integratorId: {
+          type: "string",
+          pattern: "^0x[0-9a-fA-F]{64}$",
+          description: "Optional bytes32 integrator ID applied to every router in the batch.",
+        },
+        affiliate: {
+          type: "object",
+          properties: {
+            address: addressSchema,
+            feeBps: { type: "integer", minimum: 0, maximum: 10000 },
+          },
+          description: "Optional off-chain affiliate config applied to every router in the batch.",
+        },
+      },
+    },
+    outputSchema: {
+      type: "object",
+      additionalProperties: {
+        type: "object",
+        properties: {
+          chain: { type: "object" },
+          integratorId: { type: "string" },
+        },
+      },
+      description: "Map of chainId to router instance.",
+    },
+    agentHints:
+      "Call getSupportedChains first if you do not know the chain IDs. " +
+      "Do not pass the same RPC URL to multiple chains unless the endpoint explicitly supports multiple networks.",
+  },
+
+  getAllChainRouters: {
+    name: "getAllChainRouters",
+    description:
+      "Creates one router for every supported chain. " +
+      "Use this for all-chain discovery, monitoring, and broad price sweeps.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        providers: providerMapSchema,
+        defaultProvider: providerInputSchema,
+        integratorId: {
+          type: "string",
+          pattern: "^0x[0-9a-fA-F]{64}$",
+          description: "Optional bytes32 integrator ID applied to every router.",
+        },
+        affiliate: {
+          type: "object",
+          properties: {
+            address: addressSchema,
+            feeBps: { type: "integer", minimum: 0, maximum: 10000 },
+          },
+          description: "Optional off-chain affiliate config applied to every router.",
+        },
+      },
+    },
+    outputSchema: {
+      type: "object",
+      additionalProperties: {
+        type: "object",
+        properties: {
+          chain: { type: "object" },
+          integratorId: { type: "string" },
+        },
+      },
+      description: "Map of every supported chainId to router instance.",
+    },
+    agentHints:
+      "Use this only when the workflow genuinely needs every supported chain. " +
+      "For a known subset, use createRouters with explicit chainIds.",
   },
 
   // ── Wallet management ────────────────────────────────────────────────────────

@@ -3,7 +3,12 @@
 
 // ─── Primary API ──────────────────────────────────────────────────────────────
 
-export { createRouter, createAffiliateRouter } from "./router.js";
+export {
+  createRouter,
+  createAffiliateRouter,
+  createRouters,
+  getAllChainRouters,
+} from "./router.js";
 
 // ─── Wallet connectivity ──────────────────────────────────────────────────────
 
@@ -167,7 +172,9 @@ export type {
   QuoteUSDResult,
   AffiliateConfig,
   AffiliateEarning,
+  ProviderInput,
   RouterConfig,
+  BatchRouterConfig,
   EmpxRouter,
   WalletType,
   WalletInfo,

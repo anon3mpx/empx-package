@@ -62,6 +62,17 @@ const openAiTool = {
 };
 ```
 
+Multi-chain factory schemas are included too:
+
+```javascript
+TOOL_SCHEMAS.createRouters;
+TOOL_SCHEMAS.getAllChainRouters;
+```
+
+For agent workflows that inspect more than one network, use `createRouters()` with
+explicit `chainIds`. Use `getAllChainRouters()` only when the task genuinely needs
+every supported chain.
+
 ## Supported Chains
 
 | Chain       | Chain ID | Native Token |
@@ -133,13 +144,91 @@ The main entry point. Returns a router instance bound to a specific chain.
 const { createRouter, CHAIN_IDS } = require("empx-swap-sdk");
 
 // Uses the chain's default public RPC
-const router = createRouter(CHAIN_IDS.ARBITRUM);
+const defaultRouter = createRouter(CHAIN_IDS.ARBITRUM);
 
 // Custom RPC URL
-const router = createRouter(CHAIN_IDS.BSC, "https://my-bsc-node.com");
+const customRpcRouter = createRouter(CHAIN_IDS.BSC, "https://my-bsc-node.com");
 
 // Existing ethers.js provider
-const router = createRouter(CHAIN_IDS.POLYGON, myProvider);
+const providerRouter = createRouter(CHAIN_IDS.POLYGON, myProvider);
+
+// RPC fallback list for one chain
+const fallbackRouter = createRouter(CHAIN_IDS.ARBITRUM, [
+    "https://arb-mainnet.g.alchemy.com/v2/YOUR_KEY",
+    "https://arb1.arbitrum.io/rpc",
+    "https://arbitrum.llamarpc.com",
+]);
+```
+
+When an RPC URL array is provided, the SDK creates an ethers `FallbackProvider`
+with `quorum: 1`, ordered priority, and a short stall timeout. Empty RPC arrays
+are rejected.
+
+## createRouters(chainIds, config?)
+
+Batch router factory. Returns a `Record<number, EmpxRouter>` keyed by chain ID.
+Use this when a dashboard, backend job, or agent needs routers for more than one
+chain.
+
+```javascript
+const { createRouters, CHAIN_IDS } = require("empx-swap-sdk");
+
+// Uses each chain's configured default public RPC
+const routers = createRouters([
+    CHAIN_IDS.ARBITRUM,
+    CHAIN_IDS.BASE,
+    CHAIN_IDS.BSC,
+]);
+
+const arbRouter = routers[CHAIN_IDS.ARBITRUM];
+
+// Per-chain provider overrides
+const routersWithRpcs = createRouters([
+    CHAIN_IDS.ARBITRUM,
+    CHAIN_IDS.BASE,
+    CHAIN_IDS.BSC,
+], {
+    providers: {
+        [CHAIN_IDS.ARBITRUM]: [
+            "https://arb-mainnet.g.alchemy.com/v2/YOUR_KEY",
+            "https://arb1.arbitrum.io/rpc",
+        ],
+        [CHAIN_IDS.BASE]: "https://base-mainnet.g.alchemy.com/v2/YOUR_KEY",
+        [CHAIN_IDS.BSC]: [
+            "https://bsc-dataseed1.binance.org",
+            "https://bsc-dataseed2.binance.org",
+        ],
+    },
+});
+```
+
+Prefer `providers` for batch usage because most RPC URLs are chain-specific.
+`defaultProvider` is also available for advanced cases where a provider can serve
+every requested chain.
+
+Batch validation is strict:
+
+- `chainIds` must contain at least one chain.
+- Duplicate chain IDs are rejected.
+- `providers` keys must be included in the requested `chainIds`.
+- Empty RPC fallback arrays are rejected.
+
+## getAllChainRouters(config?)
+
+Convenience wrapper around `createRouters(getSupportedChainIds(), config)`.
+Returns one router for every supported chain.
+
+```javascript
+const { getAllChainRouters, CHAIN_IDS } = require("empx-swap-sdk");
+
+const routers = getAllChainRouters();
+
+const routersWithOverrides = getAllChainRouters({
+    providers: {
+        [CHAIN_IDS.ARBITRUM]: "https://arb-mainnet.g.alchemy.com/v2/YOUR_KEY",
+        [CHAIN_IDS.BASE]: "https://base-mainnet.g.alchemy.com/v2/YOUR_KEY",
+    },
+});
 ```
 
 ## createAffiliateRouter(chainId, integratorId, provider?)
@@ -452,12 +541,14 @@ getSupportedChainIds();    // All supported chain IDs
 ## Full Example: Multi-chain Price Dashboard
 
 ```javascript
-const { createRouter, CHAIN_IDS } = require("empx-swap-sdk");
+const { createRouters, CHAIN_IDS } = require("empx-swap-sdk");
 
 async function getPricesAcrossChains(tokensByChain) {
+    const routers = createRouters(Object.keys(tokensByChain).map(Number));
+
     const results = await Promise.allSettled(
         Object.entries(tokensByChain).map(async ([chainId, tokens]) => {
-            const router = createRouter(Number(chainId));
+            const router = routers[Number(chainId)];
             const prices = await router.getMultipleTokenPricesUSD(tokens);
             return { chain: router.chain.name, prices };
         })

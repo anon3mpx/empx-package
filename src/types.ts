@@ -42,9 +42,18 @@ export interface AffiliateEarning {
   affiliateAmountHuman: number; affiliateFeeBps: number;
 }
 
+export type ProviderInput = string | string[] | Provider | Signer;
+
 export interface RouterConfig {
   integratorId?: string;
   affiliate?: AffiliateConfig;
+}
+
+export interface BatchRouterConfig extends RouterConfig {
+  /** Per-chain provider input. Missing chains use the chain registry default RPC. */
+  providers?: Partial<Record<number, ProviderInput>>;
+  /** Optional shared provider for advanced use; prefer per-chain providers. */
+  defaultProvider?: ProviderInput;
 }
 
 export const ERROR_CODES = {

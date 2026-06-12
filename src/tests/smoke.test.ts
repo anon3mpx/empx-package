@@ -3,7 +3,7 @@
 // Usage: npx tsx src/tests/smoke.test.ts
 
 import {
-  createRouter, createAffiliateRouter,
+  createRouter, createAffiliateRouter, createRouters, getAllChainRouters,
   getChainConfig, getAllChains, getSupportedChainIds,
   CHAIN_IDS, CHAINS, stripRouterAbi,
   getProtocolFeeBps, setProtocolFeeBps,
@@ -14,6 +14,7 @@ import {
   validateTradeParams, validateAffiliateConfig, isValidAddress, isPositiveBigInt,
   enablePairTypeFees, disablePairTypeFees, isPairTypeFeesEnabled,
   makeAffiliateConfig, classifyAffiliateTier, AFFILIATE_TIER_BPS,
+  TOOL_SCHEMAS, getOpenAITools,
 } from "../index.js";
 import { ethers } from "ethers";
 
@@ -117,6 +118,94 @@ assert(dual.affiliate!.feeBps === 1000, "Dual router affiliate feeBps = 1000");
 const wallet = ethers.Wallet.createRandom();
 const withSigner = createRouter(56, wallet);
 assert(!!withSigner, "createRouter with Signer returns router");
+
+// With fallback RPCs
+const withFallback = createRouter(42161, [
+  "https://arb-mainnet.g.alchemy.com/v2/test",
+  "https://arb1.arbitrum.io/rpc",
+]);
+assert(withFallback.provider instanceof ethers.FallbackProvider, "createRouter with RPC array returns FallbackProvider");
+assert(withFallback.chain.chainId === 42161, "Fallback router preserves chain ID");
+
+try {
+  createRouter(42161, []);
+  assert(false, "createRouter rejects empty RPC fallback array");
+} catch (err) {
+  assert(err instanceof EmpxError, "Empty RPC fallback throws EmpxError");
+  assert((err as EmpxError).code === ERROR_CODES.INVALID_INPUT, "Empty RPC fallback uses INVALID_INPUT");
+}
+
+// Batch routers
+const batch = createRouters([42161, 8453]);
+assert(!!batch[42161], "createRouters returns Arbitrum router");
+assert(!!batch[8453], "createRouters returns Base router");
+assert(batch[42161].chain.chainId === 42161, "Batch Arbitrum chain ID");
+assert(batch[8453].chain.chainId === 8453, "Batch Base chain ID");
+
+const batchWithOverrides = createRouters([42161, 8453], {
+  providers: {
+    42161: [
+      "https://arb-mainnet.g.alchemy.com/v2/test",
+      "https://arb1.arbitrum.io/rpc",
+    ],
+  },
+});
+assert(batchWithOverrides[42161].provider instanceof ethers.FallbackProvider, "Batch override can use fallback provider");
+assert(!(batchWithOverrides[8453].provider instanceof ethers.FallbackProvider), "Batch missing override uses chain default provider");
+
+const batchWithDefault = createRouters([42161, 8453], {
+  defaultProvider: [
+    "https://rpc.example/primary",
+    "https://rpc.example/fallback",
+  ],
+});
+assert(batchWithDefault[42161].provider instanceof ethers.FallbackProvider, "Batch defaultProvider applies to Arbitrum");
+assert(batchWithDefault[8453].provider instanceof ethers.FallbackProvider, "Batch defaultProvider applies to Base");
+
+try {
+  createRouters([]);
+  assert(false, "createRouters rejects empty chain list");
+} catch (err) {
+  assert(err instanceof EmpxError, "Empty batch throws EmpxError");
+  assert((err as EmpxError).code === ERROR_CODES.INVALID_INPUT, "Empty batch uses INVALID_INPUT");
+}
+
+try {
+  createRouters([42161, 42161]);
+  assert(false, "createRouters rejects duplicate chain IDs");
+} catch (err) {
+  assert(err instanceof EmpxError, "Duplicate batch throws EmpxError");
+  assert((err as EmpxError).code === ERROR_CODES.INVALID_INPUT, "Duplicate batch uses INVALID_INPUT");
+}
+
+try {
+  createRouters([42161], { providers: { 8453: "https://mainnet.base.org" } });
+  assert(false, "createRouters rejects provider overrides outside requested chains");
+} catch (err) {
+  assert(err instanceof EmpxError, "Unused provider override throws EmpxError");
+  assert((err as EmpxError).code === ERROR_CODES.INVALID_INPUT, "Unused provider override uses INVALID_INPUT");
+}
+
+const allRouters = getAllChainRouters();
+assert(Object.keys(allRouters).length === chainIds.length, "getAllChainRouters returns all supported chains");
+assert(!!allRouters[CHAIN_IDS.ARBITRUM], "getAllChainRouters includes Arbitrum");
+assert(!!allRouters[CHAIN_IDS.BASE], "getAllChainRouters includes Base");
+
+// ─── Agent schemas ──────────────────────────────────────────────────────────
+
+console.log("\n─── Agent schemas ───");
+
+assert(!!TOOL_SCHEMAS.createRouters, "TOOL_SCHEMAS includes createRouters");
+assert(!!TOOL_SCHEMAS.getAllChainRouters, "TOOL_SCHEMAS includes getAllChainRouters");
+assert(
+  Array.isArray((TOOL_SCHEMAS.createRouters.inputSchema as any).required)
+    && (TOOL_SCHEMAS.createRouters.inputSchema as any).required.includes("chainIds"),
+  "createRouters schema requires chainIds"
+);
+
+const openAiTools = getOpenAITools();
+assert(openAiTools.some((tool) => tool.function.name === "createRouters"), "OpenAI tools include createRouters");
+assert(openAiTools.some((tool) => tool.function.name === "getAllChainRouters"), "OpenAI tools include getAllChainRouters");
 
 // ─── ABIs ────────────────────────────────────────────────────────────────────
 
