@@ -3,11 +3,12 @@
 
 # Node
 node_modules/
-src/node_modules/
 
-# npm artifacts and local cache
+# Build output
+dist/
+
+# npm artifacts
 *.tgz
-src/.npm-cache/
 
 # Logs
 npm-debug.log*
