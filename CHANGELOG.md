@@ -5,21 +5,6 @@ All notable changes to this SDK are documented here. Format follows
 
 ---
 
-## [Unreleased]
-
-### Added
-
-- **RPC fallback providers** — `createRouter()` now accepts ordered RPC URL arrays and builds an ethers `FallbackProvider` with `quorum: 1`.
-- **Batch router factories** — added `createRouters()` for explicit multi-chain router creation and `getAllChainRouters()` for all supported chains.
-- **Agent schema coverage** — added `TOOL_SCHEMAS.createRouters` and `TOOL_SCHEMAS.getAllChainRouters` for multi-chain agent workflows.
-
-### Changed
-
-- **Batch validation** — `createRouters()` now rejects empty chain lists, duplicate chain IDs, and provider override keys outside the requested chain set.
-- **README examples** — documented RPC fallback, batch router usage, all-chain router usage, and multi-chain agent guidance.
-
----
-
 ## [2.0.0] — 2026-06-09
 
 ### Added
@@ -34,6 +19,9 @@ All notable changes to this SDK are documented here. Format follows
 - **Chain config consolidated into JSON** — Single `all_chains.json` with 14 chains, auto-resolved ABIs via `usesPLS` flag.
 - **Improved TradeInfo** — New fields: `affiliateFee`, `totalFeeBps`, `integratorId` (when applicable).
 - **Comprehensive test suite** — 379 tests across 5 test files: smoke (149, no RPC), pathfind (100, 3 chains), affiliate (38, dual model), split (15, solver + calldata), unit (77).
+- **RPC fallback providers** — `createRouter()` now accepts ordered RPC URL arrays and builds an ethers `FallbackProvider` with `quorum: 1`.
+- **Batch router factories** — added `createRouters()` for explicit multi-chain router creation and `getAllChainRouters()` for all supported chains.
+- **Expanded agent schema coverage** — added `TOOL_SCHEMAS.createRouters` and `TOOL_SCHEMAS.getAllChainRouters` for multi-chain agent workflows.
 
 ### Changed
 
@@ -43,6 +31,8 @@ All notable changes to this SDK are documented here. Format follows
 - **6 ABI variants exported**: `BASE_ROUTER_ABI`, `PLS_ROUTER_ABI`, `ETH_ROUTER_ABI`, `BASE_INTEGRATOR_ROUTER_ABI`, `PLS_INTEGRATOR_ROUTER_ABI`, `ETH_INTEGRATOR_ROUTER_ABI`, `ERC20_ABI`.
 - **Fee system**: protocol fee management moved to `core/fees.ts` with `applyProtocolFee`, `calculateAffiliateAmount`, `affiliateAbsoluteBps`, `buildFeeBreakdown`.
 - **EmpsealMulticallRouter.sol**: updated with full `IEmpsealRouter` interface (ETH + PLS swap variants) and `usesPLS` constructor flag for correct native swap dispatch per chain.
+- **Batch validation** — `createRouters()` now rejects empty chain lists, duplicate chain IDs, and provider override keys outside the requested chain set.
+- **README examples** — documented RPC fallback, batch router usage, all-chain router usage, and multi-chain agent guidance.
 
 ### Retained from v1.x
 
