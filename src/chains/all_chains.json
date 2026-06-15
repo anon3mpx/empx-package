@@ -1,0 +1,660 @@
+{
+  "arbitrum": {
+    "chainId": 42161,
+    "name": "Arbitrum One",
+    "usesPLS": false,
+    "nativeSwapFns": {
+      "fromNative": "swapNoSplitFromETH",
+      "toNative": "swapNoSplitToETH"
+    },
+    "nativeCurrency": {
+      "name": "Ether",
+      "symbol": "ETH",
+      "decimals": 18
+    },
+    "rpcUrl": "https://arb1.arbitrum.io/rpc",
+    "ROUTER_ADDRESS": "0xA7772cDBA7739F19dcaE85fe0357929790FD23F9",
+    "NATIVE_ADDRESS": "0x0000000000000000000000000000000000000000",
+    "WRAPPED_NATIVE": "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
+    "USD_STABLE": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+    "USD_STABLE_DECIMALS": 6,
+    "STABLE_TOKENS": [
+      "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+      "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
+      "0x6491c05a82219b8d1479057361ff1654749b876b",
+      "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34"
+    ],
+    "TRUSTED_TOKENS": [
+      "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+      "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
+      "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
+      "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f",
+      "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34",
+      "0x912ce59144191c1204e64559fe8253a0e49e6548"
+    ],
+    "ADAPTERS": [
+      "0xE6EF55853f548b7EdFa403056f91f85fD3B3F086",
+      "0xa91d8284C199FE4c178d76558A1427790AF7e80F",
+      "0x65642Ac8FD57EfF8DD4651CB76bE48814C8Bf386",
+      "0xe92d374a55655F4b8447e3A6eacA87bBc09Dd8D7",
+      "0x1cB21a8a39E760E97c587B323D891927F3D006e9",
+      "0xe0c4Aa6A461f5032F3153DC2801dD5fcEf9D469e",
+      "0x1b7Eb489EB0AE102720442Fe15b0e08653A13404",
+      "0x050c6C2555c2d54AbA01420FBc02fF0F1d10E8dF",
+      "0x227fD8AAf5e86a96881e2CCE3393F53247537b34",
+      "0x845Cd50644A9592de43BCAC0212656480744AAcA",
+      "0xFE4D69f3fb00AEd81003212904BEa55487daeff0",
+      "0x0bBB52AC247943d70F75EDD21DFA864652Db2e04",
+      "0xDb403792c55bFE26beaeF235986D4F106E40Ee6F",
+      "0x8C30E0D45733e99cc5aA8269E92922412471DbCF"
+    ]
+  },
+  "avalanche": {
+    "chainId": 43114,
+    "name": "Avalanche",
+    "usesPLS": false,
+    "nativeSwapFns": {
+      "fromNative": "swapNoSplitFromETH",
+      "toNative": "swapNoSplitToETH"
+    },
+    "nativeCurrency": {
+      "name": "Avalanche",
+      "symbol": "AVAX",
+      "decimals": 18
+    },
+    "rpcUrl": "https://api.avax.network/ext/bc/C/rpc",
+    "ROUTER_ADDRESS": "0xf4e53aAe1D9f27851B03842007D0a8a023317cD2",
+    "NATIVE_ADDRESS": "0x0000000000000000000000000000000000000000",
+    "WRAPPED_NATIVE": "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
+    "USD_STABLE": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e",
+    "USD_STABLE_DECIMALS": 6,
+    "STABLE_TOKENS": [
+      "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e",
+      "0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7",
+      "0x00000000efe302beaa2b3e6e1b18d08d69a9012a"
+    ],
+    "TRUSTED_TOKENS": [
+      "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
+      "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e",
+      "0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7",
+      "0x152b9d0fdc40c096757f570a51e494bd4b943e50",
+      "0x49d5c2bdffac6ce2bfdb6640f4f80f226bc10bab",
+      "0xcd94a87696fac69edae3a70fe5725307ae1c43f6",
+      "0x00000000efe302beaa2b3e6e1b18d08d69a9012a"
+    ],
+    "ADAPTERS": [
+      "0x7F76c13d61AB4F9F7902c255A52a1Dae6c434afB",
+      "0xbBB3F1c913343CA3D1aB0Fc346fbF09dd1e2f681",
+      "0xD4F0A5a29cCe8a1cdbadbf8D6c328640Ab984F1D",
+      "0x95bbb8985062F2c02D077f0F8F788b7CAa2c2f08",
+      "0xC827913F0556a74BF9589d7ba7434cfE1Be2a62b",
+      "0x62698059A5305C7f31Cd28A28AC035568C858b9f",
+      "0x1c2BDa495534a45469D08F35d68D95D5132EC5Ac",
+      "0x79313D4e44615250A0fA41cdA0CFc3A45d3561Be",
+      "0x686c652d079A370eC97F93B2b4805Ee06aE25d04",
+      "0xae0aF43cf60640C1b08CCDE447F231Af02770C88"
+    ]
+  },
+  "base": {
+    "chainId": 8453,
+    "name": "Base",
+    "usesPLS": false,
+    "nativeSwapFns": {
+      "fromNative": "swapNoSplitFromETH",
+      "toNative": "swapNoSplitToETH"
+    },
+    "nativeCurrency": {
+      "name": "Ether",
+      "symbol": "ETH",
+      "decimals": 18
+    },
+    "rpcUrl": "https://mainnet.base.org",
+    "ROUTER_ADDRESS": "0xB12b7C117434B58B7623f994F4D0b4af7BC0Ac37",
+    "NATIVE_ADDRESS": "0x0000000000000000000000000000000000000000",
+    "WRAPPED_NATIVE": "0x4200000000000000000000000000000000000006",
+    "USD_STABLE": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "USD_STABLE_DECIMALS": 6,
+    "STABLE_TOKENS": [
+      "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+      "0xEB466342C4d449BC9f53A865D5Cb90586f405215",
+      "0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA",
+      "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2"
+    ],
+    "TRUSTED_TOKENS": [
+      "0x4200000000000000000000000000000000000006",
+      "0xEB466342C4d449BC9f53A865D5Cb90586f405215",
+      "0x940181a94A35A4569E4529A3CDfB74e38FD98631",
+      "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
+      "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+      "0xc0634090F2Fe6c6d75e61Be2b949464aBB498973",
+      "0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b",
+      "0x36be1d329444aef5d28df3662ec5b4f965cd93e9",
+      "0xe290816384416fb1db9225e176b716346db9f9fe",
+      "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+      "0x2ae3f1ec7f1f5012cfeab0185bfc7aa3cf0dec22"
+    ],
+    "ADAPTERS": [
+      "0xb0345e6AA593961fBD3C7194E5dBF79ca7e42C43",
+      "0xBfC918572B5a819194875568dAF67aeF7ADA8437",
+      "0x82064ec0119E776dc1751E104Cc603A347861e22",
+      "0xca9b4b3a861ebb3475263c8cd5943c8ab7403ba1",
+      "0x9e0f316d883CB71c63865A3DD8D1566E15eaBAeB",
+      "0x2E8E19b402460c859B6E07a71b29b01c8C5A420F",
+      "0x24B4d249eb21fbD224E881be98334a21855914dA",
+      "0x19BBE0f501251aC16Fcc72cc9AF8678Fc6AAC594",
+      "0xe7416340942F1DaD79f193a10794A2deA219E833",
+      "0xAe0A08182A8b9652695804e8F92f4D4b8A1FD798",
+      "0x43A13238F6f1610d249947aec3E051B7dD378Dbb",
+      "0x7A6Fc08501B413106e30822a8716A51e1cCE5487",
+      "0x9c23860d40e22e694f0CE68E022db0F1f919A19d",
+      "0xa14Cc33814ba6A5F7a9bc69452302DdF7C4513AC",
+      "0xB49536173f268e1d27d2Cc50ADa973527308729D",
+      "0x43FBC0d0F6392689801168b08A7444550647caae",
+      "0x8e94D6Afb1A40090a2e7C5870F7A6a06b4740069",
+      "0xbEE48badaEB4E5fd71818796603fe063C3cA233D",
+      "0x57f1AFFbc2d8b8445857D7813cD826ec71Ff86d9"
+    ]
+  },
+  "berachain": {
+    "chainId": 80094,
+    "name": "Berachain",
+    "usesPLS": false,
+    "nativeSwapFns": {
+      "fromNative": "swapNoSplitFromETH",
+      "toNative": "swapNoSplitToETH"
+    },
+    "nativeCurrency": {
+      "name": "Berachain",
+      "symbol": "BERA",
+      "decimals": 18
+    },
+    "rpcUrl": "https://berachain.drpc.org",
+    "ROUTER_ADDRESS": "0x365Ac3b1aB01e34339E3Ff1d94934bFEcB7933e0",
+    "NATIVE_ADDRESS": "0x0000000000000000000000000000000000000000",
+    "WRAPPED_NATIVE": "0x6969696969696969696969696969696969696969",
+    "USD_STABLE": "0x549943e04f40284185054145c6e4e9568c1d3241",
+    "USD_STABLE_DECIMALS": 6,
+    "STABLE_TOKENS": [
+      "0x549943e04f40284185054145c6e4e9568c1d3241"
+    ],
+    "TRUSTED_TOKENS": [
+      "0x6969696969696969696969696969696969696969",
+      "0xfcbd14dc51f0a4d49d5e53c2e0950e0bc26d0dce",
+      "0x0555e30da8f98308edb960aa94c0db47230d2b9c",
+      "0x2f6f07cdcf3588944bf4c42ac74ff24bf56e7590",
+      "0x549943e04f40284185054145c6e4e9568c1d3241",
+      "0xac03caba51e17c86c921e1f6cbfbdc91f8bb2e6b"
+    ],
+    "ADAPTERS": [
+      "0xcD05Ae7369e14D0Fd232F0D3C025D9703B779d80",
+      "0x2F21FF788e14A531847E6658aFBD725555757da5",
+      "0xc1Bb27E7AE8af9164Cb6B5D3A465478415EdEbB7",
+      "0x6cE282F748514Df878C396d3d1a024BD5Bb26871",
+      "0xce032ac88ad11E6f8374B3760F5a98a77c6584f0"
+    ]
+  },
+  "bsc": {
+    "chainId": 56,
+    "name": "BNB Smart Chain",
+    "usesPLS": false,
+    "nativeSwapFns": {
+      "fromNative": "swapNoSplitFromETH",
+      "toNative": "swapNoSplitToETH"
+    },
+    "nativeCurrency": {
+      "name": "BNB",
+      "symbol": "BNB",
+      "decimals": 18
+    },
+    "rpcUrl": "https://bsc-dataseed1.binance.org",
+    "ROUTER_ADDRESS": "0x7b9637C7c8Aa45B679eEdBb4b680642410322df1",
+    "NATIVE_ADDRESS": "0x0000000000000000000000000000000000000000",
+    "WRAPPED_NATIVE": "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c",
+    "USD_STABLE": "0x55d398326f99059ff775485246999027b3197955",
+    "USD_STABLE_DECIMALS": 18,
+    "STABLE_TOKENS": [
+      "0x55d398326f99059ff775485246999027b3197955",
+      "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d",
+      "0xe9e7cea3dedca5984780bafc599bd69add087d56"
+    ],
+    "TRUSTED_TOKENS": [
+      "0x55d398326f99059ff775485246999027b3197955",
+      "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c",
+      "0xe9e7cea3dedca5984780bafc599bd69add087d56",
+      "0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82",
+      "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d",
+      "0x2170ed0880ac9a755fd29b2688956bd959f933f8",
+      "0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c",
+      "0xf4c8e32eadec4bfe97e0f595add0f4450a863a11"
+    ],
+    "ADAPTERS": [
+      "0x6cbdA053431a11A6771D74bF272d66904207dfD1",
+      "0x86EB63780e1b59146148CD58699B7Bb6dc2f8805",
+      "0x7307FEE834DdC88A716904830C0cb356A4878be1",
+      "0xF1c5241FaEFC0dB9B9333D9E2196e992a20dFD3d",
+      "0xcbe7b1C7Ad642a5FbEc9d86929C8e13fe04aAaCa",
+      "0x1f5C42FCd0940692d4be52d17CD6bbFDFac9b0ac",
+      "0xb46dF4687B7F5d30B982fA6854D8FbB8A4D89132",
+      "0x1D135C2711f89e6eb70665BF55942E498835b336",
+      "0xCd23897513A5b7925761e8c63Da9203848C7e975",
+      "0x626c6B8fb441c891F17D972fF1246B10e5634615",
+      "0x8bea9826456AB283a17C6244141691670ae86A34",
+      "0x1aAe94A372f20271B6b2919d3890Dc5583e091aC",
+      "0x83BE9b7b17b9600Cb369ED7062F4980D5a2f6cDB",
+      "0xA285098184932DA9AAa8F8B4895B93FdeeeC07a2",
+      "0x1D64595c11a4727551Cc11d12D2f7239A64e15F0",
+      "0xb0e99628d884b3f45a312BCFD7A2505Cd711b657",
+      "0xb018d450eCE36a9B4cb6ea620C8C361F25749874"
+    ]
+  },
+  "ethw": {
+    "chainId": 10001,
+    "name": "EthereumPOW",
+    "usesPLS": false,
+    "nativeSwapFns": {
+      "fromNative": "swapNoSplitFromETH",
+      "toNative": "swapNoSplitToETH"
+    },
+    "nativeCurrency": {
+      "name": "EthereumPOW",
+      "symbol": "ETHW",
+      "decimals": 18
+    },
+    "rpcUrl": "https://ethw.public-rpc.com",
+    "ROUTER_ADDRESS": "0x4bF29b3D063BE84a8206fb65050DA3E21239Ff12",
+    "NATIVE_ADDRESS": "0x0000000000000000000000000000000000000000",
+    "WRAPPED_NATIVE": "0x7Bf88d2c0e32dE92CdaF2D43CcDc23e8Edfd5990",
+    "USD_STABLE": "0x25DE68ef588cb0c2c8F3537861E828Ae699CD0DB",
+    "USD_STABLE_DECIMALS": 6,
+    "STABLE_TOKENS": [
+      "0x25DE68ef588cb0c2c8F3537861E828Ae699CD0DB",
+      "0x6b175474e89094c44da98b954eedeac495271d0f"
+    ],
+    "TRUSTED_TOKENS": [
+      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "0x7Bf88d2c0e32dE92CdaF2D43CcDc23e8Edfd5990",
+      "0x2ab0e9e4ee70fff1fb9d67031e44f6410170d00e",
+      "0x2b591e99afe9f32eaa6214f7b7629768c40eeb39",
+      "0x45804880de22913dafe09f4980848ece6ecbaf78"
+    ],
+    "ADAPTERS": [
+      "0x2f21ff788e14a531847e6658afbd725555757da5",
+      "0xc14441CBD763FBad2Db823CCa77AFAdeCbcdd0c4",
+      "0x1FB42F76F101F8EB2ed7a12aC16b028500907F80",
+      "0xcd05ae7369e14d0fd232f0d3c025d9703b779d80"
+    ]
+  },
+  "hyperevm": {
+    "chainId": 999,
+    "name": "HyperEVM",
+    "usesPLS": false,
+    "nativeSwapFns": {
+      "fromNative": "swapNoSplitFromETH",
+      "toNative": "swapNoSplitToETH"
+    },
+    "nativeCurrency": {
+      "name": "HyperEVM",
+      "symbol": "HYPE",
+      "decimals": 18
+    },
+    "rpcUrl": "https://arb1.arbitrum.io/rpc",
+    "ROUTER_ADDRESS": "0xd3c8153351df63287cCD042ba75f6Be2583d939E",
+    "NATIVE_ADDRESS": "0x0000000000000000000000000000000000000000",
+    "WRAPPED_NATIVE": "0x5555555555555555555555555555555555555555",
+    "USD_STABLE": "0xb88339cb7199b77e23db6e890353e22632ba630f",
+    "USD_STABLE_DECIMALS": 6,
+    "STABLE_TOKENS": [
+      "0xb88339cb7199b77e23db6e890353e22632ba630f",
+      "0xb8ce59fc3717ada4c02eadf9682a9e934f625ebb",
+      "0x111111a1a0667d36bd57c0a9f569b98057111111"
+    ],
+    "TRUSTED_TOKENS": [
+      "0xb88339cb7199b77e23db6e890353e22632ba630f",
+      "0x5555555555555555555555555555555555555555",
+      "0xb8ce59fc3717ada4c02eadf9682a9e934f625ebb",
+      "0xbe6727b535545c67d5caa73dea54865b92cf7907",
+      "0x9fdbda0a5e284c32744d2f17ee5c74b284993463",
+      "0xfd739d4e423301ce9385c1fb8850539d657c296d",
+      "0x111111a1a0667d36bd57c0a9f569b98057111111"
+    ],
+    "ADAPTERS": [
+      "0x91F544d5E4795adBa662780ae9F0216942764140",
+      "0x46763657C2e4845C4f72c7Cce605B3cB3309fd2f",
+      "0x2F21FF788e14A531847E6658aFBD725555757da5",
+      "0xABA4Fe7F9c08F1230FbeD21426C7198118D35917",
+      "0x4392E30Ddd3bA7a318DE9D5EF8f7b4254f0d7Bc6",
+      "0x5D5Ce53eE21694834cb6C70030b24937340E9C81",
+      "0xB7e18d1ddc55D5c0748573AC97519F7b309aaA1B",
+      "0x867c1fd9341DEC12e4B779C35D7b7C475316b334",
+      "0x8A5CAEF153e4Dc59A89aAfEBbC5725726617860a"
+    ]
+  },
+  "monad": {
+    "chainId": 143,
+    "name": "Monad",
+    "usesPLS": false,
+    "nativeSwapFns": {
+      "fromNative": "swapNoSplitFromETH",
+      "toNative": "swapNoSplitToETH"
+    },
+    "nativeCurrency": {
+      "name": "Monad",
+      "symbol": "MON",
+      "decimals": 18
+    },
+    "rpcUrl": "https://rpc.monad.xyz",
+    "ROUTER_ADDRESS": "0x867c1fd9341DEC12e4B779C35D7b7C475316b334",
+    "NATIVE_ADDRESS": "0x0000000000000000000000000000000000000000",
+    "WRAPPED_NATIVE": "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A",
+    "USD_STABLE": "0x754704bc059f8c67012fed69bc8a327a5aafb603",
+    "USD_STABLE_DECIMALS": 6,
+    "STABLE_TOKENS": [
+      "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
+      "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+      "0xe7cd86e13AC4309349F30B3435a9d337750fC82D"
+    ],
+    "TRUSTED_TOKENS": [
+      "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
+      "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A",
+      "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+      "0x0555E30da8f98308EdB960aa94C0Db47230d2B9c",
+      "0xEE8c0E9f1BFFb4Eb878d8f15f368A02a35481242",
+      "0xe7cd86e13AC4309349F30B3435a9d337750fC82D"
+    ],
+    "ADAPTERS": [
+      "0x2F21FF788e14A531847E6658aFBD725555757da5",
+      "0xb93f9418876b595454f6A3aB0718fFB68F76B330",
+      "0x4bF29b3D063BE84a8206fb65050DA3E21239Ff12",
+      "0x5D5Ce53eE21694834cb6C70030b24937340E9C81",
+      "0xcD05Ae7369e14D0Fd232F0D3C025D9703B779d80",
+      "0x365Ac3b1aB01e34339E3Ff1d94934bFEcB7933e0",
+      "0x4482933CfbD06Efe305Ab8Fd2c077ebfD8bFF818",
+      "0x8A5CAEF153e4Dc59A89aAfEBbC5725726617860a",
+      "0x27E729De58e29017BEa774a578930Ed47Fefed02"
+    ]
+  },
+  "optimism": {
+    "chainId": 10,
+    "name": "Optimism",
+    "usesPLS": false,
+    "nativeSwapFns": {
+      "fromNative": "swapNoSplitFromETH",
+      "toNative": "swapNoSplitToETH"
+    },
+    "nativeCurrency": {
+      "name": "Ether",
+      "symbol": "ETH",
+      "decimals": 18
+    },
+    "rpcUrl": "https://mainnet.optimism.io",
+    "ROUTER_ADDRESS": "0x686c652d079A370eC97F93B2b4805Ee06aE25d04",
+    "NATIVE_ADDRESS": "0x0000000000000000000000000000000000000000",
+    "WRAPPED_NATIVE": "0x4200000000000000000000000000000000000006",
+    "USD_STABLE": "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
+    "USD_STABLE_DECIMALS": 6,
+    "STABLE_TOKENS": [
+      "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
+      "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58",
+      "0x7f5c764cbc14f9669b88837ca1490cca17c31607",
+      "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1"
+    ],
+    "TRUSTED_TOKENS": [
+      "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
+      "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58",
+      "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1",
+      "0xcb8fa9a76b8e203d8c3797bf438d8fb81ea3326a",
+      "0x4200000000000000000000000000000000000006",
+      "0x68f180fcce6836688e9084f035309e29bf0a2095",
+      "0x4200000000000000000000000000000000000042",
+      "0x8c6f28f2f1a3c87f0f938b96d27520d9751ec8d9",
+      "0x9560e827af36c94d2ac33a39bce1fe78631088db",
+      "0xc52d7f23a2e460248db6ee192cb23dd12bddcbf6",
+      "0x0994206dfe8de6ec6920ff4d779b0d950605fb53"
+    ],
+    "ADAPTERS": [
+      "0x21e1a9261a7E1050D34Db82BB67dEa80c5D4c0bC",
+      "0x7F76c13d61AB4F9F7902c255A52a1Dae6c434afB",
+      "0xC827913F0556a74BF9589d7ba7434cfE1Be2a62b",
+      "0xae0aF43cf60640C1b08CCDE447F231Af02770C88",
+      "0x7F5713bcF5198a1D1045DDd79d2952317FE3846E",
+      "0x9293cB3DeC942C9F0a76d1c9131D923d2713a1F6",
+      "0xa8E3e938d0c3876595BA1d77d0fD2C18D170827d",
+      "0x164327dfF74CfDFe092Af81265eF11396d4135Cd"
+    ]
+  },
+  "polygon": {
+    "chainId": 137,
+    "name": "Polygon",
+    "usesPLS": false,
+    "nativeSwapFns": {
+      "fromNative": "swapNoSplitFromETH",
+      "toNative": "swapNoSplitToETH"
+    },
+    "nativeCurrency": {
+      "name": "MATIC",
+      "symbol": "MATIC",
+      "decimals": 18
+    },
+    "rpcUrl": "https://polygon.drpc.org",
+    "ROUTER_ADDRESS": "0x9a64E7a18f5A9edcE3A3728B2C12643FA0cee26B",
+    "NATIVE_ADDRESS": "0x0000000000000000000000000000000000000000",
+    "WRAPPED_NATIVE": "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270",
+    "USD_STABLE": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+    "USD_STABLE_DECIMALS": 6,
+    "STABLE_TOKENS": [
+      "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+      "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
+      "0x8f3cf7ad23cd3cadbd9735aff958023239c6a063",
+      "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359"
+    ],
+    "TRUSTED_TOKENS": [
+      "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
+      "0x8f3cf7ad23cd3cadbd9735aff958023239c6a063",
+      "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
+      "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+      "0x1bfd67037b42cf73acf2047067bd4f2c47d9bfd6",
+      "0x7ceb23fd6bc0add59e62ac25578270cff1b9f619"
+    ],
+    "ADAPTERS": [
+      "0x050c6C2555c2d54AbA01420FBc02fF0F1d10E8dF",
+      "0xDb403792c55bFE26beaeF235986D4F106E40Ee6F",
+      "0xC92551f405F5741b6BC98f8FAd5E488923C4b063",
+      "0x227fD8AAf5e86a96881e2CCE3393F53247537b34",
+      "0x845Cd50644A9592de43BCAC0212656480744AAcA",
+      "0xFE4D69f3fb00AEd81003212904BEa55487daeff0",
+      "0x0bBB52AC247943d70F75EDD21DFA864652Db2e04",
+      "0x6AeC9Ab81A6D66Cae61B1F11c9A5c3d06020bfCB"
+    ]
+  },
+  "pulsechain": {
+    "chainId": 369,
+    "name": "PulseChain",
+    "usesPLS": true,
+    "nativeSwapFns": {
+      "fromNative": "swapNoSplitFromPLS",
+      "toNative": "swapNoSplitToPLS"
+    },
+    "nativeCurrency": {
+      "name": "Pulse",
+      "symbol": "PLS",
+      "decimals": 18
+    },
+    "rpcUrl": "https://rpc.pulsechain.com",
+    "ROUTER_ADDRESS": "0x0Cf6D948Cf09ac83a6bf40C7AD7b44657A9F2A52",
+    "NATIVE_ADDRESS": "0x0000000000000000000000000000000000000000",
+    "WRAPPED_NATIVE": "0xA1077a294dDE1B09bB078844df40758a5D0f9a27",
+    "USD_STABLE": "0x15d38573d2feeb82e7ad5187ab8c1d52810b1f07",
+    "USD_STABLE_DECIMALS": 6,
+    "STABLE_TOKENS": [
+      "0x15d38573d2feeb82e7ad5187ab8c1d52810b1f07",
+      "0x0cb6f5a34ad42ec934882a05265a7d5f59b51a2f",
+      "0xefd766ccb38eaf1dfd701853bfce31359239f305"
+    ],
+    "TRUSTED_TOKENS": [
+      "0x02DcdD04e3F455D838cd1249292C58f3B79e3C3C",
+      "0x95B303987A60C71504D99Aa1b13B4DA07b0790ab",
+      "0x2b591e99afE9f32eAA6214f7B7629768c40Eeb39",
+      "0xA1077a294dDE1B09bB078844df40758a5D0f9a27",
+      "0x2fa878Ab3F87CC1C9737Fc071108F904c0B0C95d",
+      "0x7901a3569679AEc3501dbeC59399F327854a70fe",
+      "0x15D38573d2feeb82e7ad5187aB8c1D52810B1f07",
+      "0xefD766cCb38EaF1dfd701853BFCe31359239F305",
+      "0x0Cb6F5a34ad42ec934882A05265A7d5F59b51A2f",
+      "0x57fde0a71132198BBeC939B98976993d8D89D225",
+      "0x40b49a9e5B8E3CC137E9CA57A5F4382D1B3dF6FE",
+      "0x7b39712Ef45F7dcED2bBDF11F3D5046bA61dA719",
+      "0xb17D901469B9208B17d916112988A3FeD19b5cA1",
+      "0x8Da17Db850315A34532108f0f5458fc0401525f6",
+      "0xe33a5AE21F93aceC5CfC0b7b0FDBB65A0f0Be5cC",
+      "0x9663c2d75ffd5F4017310405fCe61720aF45B829",
+      "0xc10A4Ed9b4042222d69ff0B374eddd47ed90fC1F",
+      "0xF6f8Db0aBa00007681F8fAF16A0FDa1c9B030b11"
+    ],
+    "ADAPTERS": [
+      "0x842e05D2cAF940B25d7B7Db291ABDc88748d7F90",
+      "0xb6a9140DaeBE265708785B093C0Ef561eEf26159",
+      "0x0F1cffE422EF2C85f5983Fb0B015c781BAb8A74f",
+      "0x34FD3c37c2A40e925744e102d2Cae83635CC64C3",
+      "0xa5ab0aF6eE886770B31Fb9350f7FC8F433dC2C59",
+      "0xf586000c24e2b640a0478dcf51de856df5e3328a",
+      "0xcfE09D7f35131DAfebD12356C4f52b17f65Da2E5",
+      "0x8fb6314678a9287f9B47B96e54122444e43dDE1F",
+      "0x0f5416Efd26E2EbFAB6DdCcD58859B6cfD7Df556",
+      "0x5fdd3f245ae060953dcC3C89Da8Dd4c6c26629c0"
+    ]
+  },
+  "rootstock": {
+    "chainId": 30,
+    "name": "Rootstock",
+    "usesPLS": false,
+    "nativeSwapFns": {
+      "fromNative": "swapNoSplitFromETH",
+      "toNative": "swapNoSplitToETH"
+    },
+    "nativeCurrency": {
+      "name": "Rootstock",
+      "symbol": "rootstock",
+      "decimals": 18
+    },
+    "rpcUrl": "https://public-node.rsk.co",
+    "ROUTER_ADDRESS": "0x1fb42f76f101f8eb2ed7a12ac16b028500907f80",
+    "NATIVE_ADDRESS": "0x0000000000000000000000000000000000000000",
+    "WRAPPED_NATIVE": "0x542fda317318ebf1d3deaf76e0b632741a7e677d",
+    "USD_STABLE": "0x779ded0c9e1022225f8e0630b35a9b54be713736",
+    "USD_STABLE_DECIMALS": 6,
+    "STABLE_TOKENS": [
+      "0xef213441a85df4d7acbdae0cf78004e1e486bb96",
+      "0x74c9f2b00581F1B11AA7ff05aa9F608B7389De67",
+      "0xaf368c91793cb22739386dfcbbb2f1a9e4bcbebf",
+      "0x779ded0c9e1022225f8e0630b35a9b54be713736"
+    ],
+    "TRUSTED_TOKENS": [
+      "0x542fda317318ebf1d3deaf76e0b632741a7e677d",
+      "0xaf368c91793cb22739386dfcbbb2f1a9e4bcbebf",
+      "0x541fd749419ca806a8bc7da8ac23d346f2df8b77",
+      "0xef213441a85df4d7acbdae0cf78004e1e486bb96"
+    ],
+    "ADAPTERS": [
+      "0xc14441CBD763FBad2Db823CCa77AFAdeCbcdd0c4",
+      "0xe40c877e06095417557C3bB874F4e2e8D08f11Fd"
+    ]
+  },
+  "sei": {
+    "chainId": 1329,
+    "name": "Sei",
+    "usesPLS": false,
+    "nativeSwapFns": {
+      "fromNative": "swapNoSplitFromETH",
+      "toNative": "swapNoSplitToETH"
+    },
+    "nativeCurrency": {
+      "name": "Sei",
+      "symbol": "SEI",
+      "decimals": 18
+    },
+    "rpcUrl": "https://evm-rpc.sei-apis.com",
+    "ROUTER_ADDRESS": "0xb0e99628d884b3f45a312BCFD7A2505Cd711b657",
+    "NATIVE_ADDRESS": "0x0000000000000000000000000000000000000000",
+    "WRAPPED_NATIVE": "0xe30fedd158a2e3b13e9badaeabafc5516e95e8c7",
+    "USD_STABLE": "0xe15fc38f6d8c56af07bbcbe3baf5708a2bf42392",
+    "USD_STABLE_DECIMALS": 6,
+    "STABLE_TOKENS": [
+      "0xe15fc38f6d8c56af07bbcbe3baf5708a2bf42392",
+      "0xb75d0b03c06a926e488e2659df1a861f860bd3d1",
+      "0x37a4dd9ced2b19cfe8fac251cd727b5787e45269"
+    ],
+    "TRUSTED_TOKENS": [
+      "0xe15fc38f6d8c56af07bbcbe3baf5708a2bf42392",
+      "0xb75d0b03c06a926e488e2659df1a861f860bd3d1",
+      "0xe30fedd158a2e3b13e9badaeabafc5516e95e8c7",
+      "0x0555e30da8f98308edb960aa94c0db47230d2b9c",
+      "0x160345fc359604fc6e70e3c5facbde5f7a9342d8",
+      "0x37a4dd9ced2b19cfe8fac251cd727b5787e45269",
+      "0x5f0e07dfee5832faa00c63f2d33a0d79150e8598"
+    ],
+    "ADAPTERS": [
+      "0x93ae3552B154431316F6160d07C3f7204b44f1cF",
+      "0x1E965F231380986e11E989beEbe864Ae41881D69",
+      "0xee4AB587A566675Afad2D5Cd7703096982cC1FE5",
+      "0xEab30C23A015942BDc8204bD8dcA2780a5957a8c",
+      "0xA285098184932DA9AAa8F8B4895B93FdeeeC07a2"
+    ]
+  },
+  "sonic": {
+    "chainId": 146,
+    "name": "Sonic",
+    "usesPLS": false,
+    "nativeSwapFns": {
+      "fromNative": "swapNoSplitFromETH",
+      "toNative": "swapNoSplitToETH"
+    },
+    "nativeCurrency": {
+      "name": "Sonic",
+      "symbol": "S",
+      "decimals": 18
+    },
+    "rpcUrl": "https://rpc.soniclabs.com",
+    "ROUTER_ADDRESS": "0xd8016e376e15b20Fc321a37fD69DC42cfDf951Bb",
+    "NATIVE_ADDRESS": "0x0000000000000000000000000000000000000000",
+    "WRAPPED_NATIVE": "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38",
+    "USD_STABLE": "0x29219dd400f2Bf60E5a23d13Be72B486D4038894",
+    "USD_STABLE_DECIMALS": 6,
+    "STABLE_TOKENS": [
+      "0x29219dd400f2Bf60E5a23d13Be72B486D4038894",
+      "0xd3DCe716f3eF535C5Ff8d041c1A41C3bd89b97aE",
+      "0x6047828dc181963ba44974801FF68e538dA5eaF9"
+    ],
+    "TRUSTED_TOKENS": [
+      "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38",
+      "0x29219dd400f2Bf60E5a23d13Be72B486D4038894",
+      "0x50c42dEAcD8Fc9773493ED674b675bE577f2634b",
+      "0x3333b97138D4b086720b5aE8A7844b1345a33333",
+      "0x79bbF4508B1391af3A0F4B30bb5FC4aa9ab0E07C",
+      "0xd3DCe716f3eF535C5Ff8d041c1A41C3bd89b97aE",
+      "0x6047828dc181963ba44974801FF68e538dA5eaF9",
+      "0x0555E30da8f98308EdB960aa94C0Db47230d2B9c",
+      "0x80Eede496655FB9047dd39d9f418d5483ED600df",
+      "0x3bcE5CB273F0F148010BbEa2470e7b5df84C7812",
+      "0x43eDD7f3831b08FE70B7555ddD373C8bF65a9050"
+    ],
+    "ADAPTERS": [
+      "0x1FB42F76F101F8EB2ed7a12aC16b028500907F80",
+      "0x3Ad3e05fA6ea10053D1da2B95a8b4b6672d3b933",
+      "0xc1Bb27E7AE8af9164Cb6B5D3A465478415EdEbB7",
+      "0x12dA769027A9A6121eB176346697d81Ff6673a22",
+      "0xE15F3Eb9475C513593EAC49a8AF066B71e268556",
+      "0xcD05Ae7369e14D0Fd232F0D3C025D9703B779d80",
+      "0xe40c877e06095417557C3bB874F4e2e8D08f11Fd",
+      "0x6ce282f748514df878c396d3d1a024bd5bb26871",
+      "0x86B1b88B2BBFe49999fA9A415270997ed1Bfd803",
+      "0xB7e18d1ddc55D5c0748573AC97519F7b309aaA1B",
+      "0x6b7c81207240a38e03e5e9b138c53c4762515ccd",
+      "0x2fdd76fC5A8F6081E059DF76756E347f6B8278d8",
+      "0x94b9E87E90223925fE92AaAcf255f3b405e78a19",
+      "0x88fe52B16d005a437DC29Ee43e34fD623660D77F",
+      "0xE18947547EB1f49B725c3Ca4f95bD45A84F6c24A",
+      "0x5D5Ce53eE21694834cb6C70030b24937340E9C81",
+      "0x55cC592be7E49c4020e67a895FEe9474C7D71dbc"
+    ]
+  }
+}
