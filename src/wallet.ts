@@ -40,6 +40,7 @@ export function createBurnerWallet(options: BurnerWalletOptions = {}): WalletInf
   if (options.mnemonic) {
     rawWallet = ethers.HDNodeWallet.fromPhrase(
       options.mnemonic,
+      undefined,
       options.derivationPath ?? "m/44'/60'/0'/0/0"
     );
   } else {
@@ -91,6 +92,7 @@ export function fromMnemonic(options: MnemonicWalletOptions): WalletInfo {
   const provider: Provider = new ethers.JsonRpcProvider(options.rpcUrl ?? DEFAULT_RPC);
   const hdWallet = ethers.HDNodeWallet.fromPhrase(
     options.mnemonic,
+    undefined,
     options.derivationPath ?? "m/44'/60'/0'/0/0"
   );
   const signer = hdWallet.connect(provider);

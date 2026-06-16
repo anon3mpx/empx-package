@@ -297,7 +297,7 @@
       "symbol": "HYPE",
       "decimals": 18
     },
-    "rpcUrl": "https://arb1.arbitrum.io/rpc",
+    "rpcUrl": "https://rpc.hyperliquid.xyz/evm",
     "ROUTER_ADDRESS": "0xd3c8153351df63287cCD042ba75f6Be2583d939E",
     "NATIVE_ADDRESS": "0x0000000000000000000000000000000000000000",
     "WRAPPED_NATIVE": "0x5555555555555555555555555555555555555555",
