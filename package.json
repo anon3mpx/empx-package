@@ -1,6 +1,6 @@
 {
   "name": "empx-swap-sdk",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Multi-chain DEX swap SDK — TypeScript-native, AI-agent-first, with dual on-chain + off-chain affiliate models",
   "type": "commonjs",
   "main": "dist/index.js",
