@@ -15,6 +15,7 @@ import {
   enablePairTypeFees, disablePairTypeFees, isPairTypeFeesEnabled,
   makeAffiliateConfig, classifyAffiliateTier, AFFILIATE_TIER_BPS,
   TOOL_SCHEMAS, getOpenAITools,
+  createBurnerWallet, fromMnemonic,
 } from "../index.js";
 import { ethers } from "ethers";
 
@@ -190,6 +191,24 @@ const allRouters = getAllChainRouters();
 assert(Object.keys(allRouters).length === chainIds.length, "getAllChainRouters returns all supported chains");
 assert(!!allRouters[CHAIN_IDS.ARBITRUM], "getAllChainRouters includes Arbitrum");
 assert(!!allRouters[CHAIN_IDS.BASE], "getAllChainRouters includes Base");
+
+// ─── Wallets ─────────────────────────────────────────────────────────────────
+
+console.log("\n─── Wallets ───");
+
+const burner = createBurnerWallet();
+const recoveredBurner = createBurnerWallet({ mnemonic: burner.mnemonic });
+const recoveredMnemonic = fromMnemonic({ mnemonic: burner.mnemonic! });
+assert(
+  recoveredBurner.address === burner.address,
+  "createBurnerWallet recovers the same address from its mnemonic",
+  `${burner.address} !== ${recoveredBurner.address}`
+);
+assert(
+  recoveredMnemonic.address === burner.address,
+  "fromMnemonic recovers the same address from a burner mnemonic",
+  `${burner.address} !== ${recoveredMnemonic.address}`
+);
 
 // ─── Agent schemas ──────────────────────────────────────────────────────────
 
