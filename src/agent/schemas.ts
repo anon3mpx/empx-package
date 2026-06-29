@@ -325,7 +325,7 @@ export const TOOL_SCHEMAS: Record<string, ToolSchema & { agentHints?: string }> 
     name: "getTradeInfo",
     description:
       "Finds the optimal on-chain swap route and returns a tradeInfo object with slippage applied. " +
-      "This is step 1 of every swap — always call this before getSwapCalldata or swap(). " +
+      "This is step 1 of every manual swap flow — always call this before getSwapCalldata or prepareSwap(). " +
       "The tradeInfo has a 30-second TTL (validUntil field) — reject and re-fetch if expired.",
     inputSchema: {
       type: "object",
@@ -361,10 +361,10 @@ export const TOOL_SCHEMAS: Record<string, ToolSchema & { agentHints?: string }> 
   swap: {
     name: "swap",
     description:
-      "All-in-one swap: finds the best route, applies slippage, and returns the correct calldata. " +
+      "Legacy alias for prepareSwap: finds the best route, applies slippage, and returns the correct calldata. " +
       "Handles all swap types: WrapNative, UnwrapNative, NativeToERC20, ERC20ToNative, ERC20ToERC20. " +
       "Returns { tradeInfo, calldata: { to, data, value }, swapType }. " +
-      "DO NOT execute the calldata yourself — return it to the caller or user to sign. " +
+      "This does not broadcast a transaction; prefer prepareSwap for new integrations. " +
       "For ERC-20 input, call checkAllowance first and send approval if needed.",
     inputSchema: {
       type: "object",
@@ -380,16 +380,74 @@ export const TOOL_SCHEMAS: Record<string, ToolSchema & { agentHints?: string }> 
       },
     },
     agentHints:
-      "This is the recommended single-call entry point for most swaps. " +
+      "Prefer prepareSwap for new integrations; swap remains for backwards compatibility. " +
       "The swapType in the response tells you what kind of swap was performed. " +
       "Always present the tradeInfo to the user (amountIn, amountOut, fee) before executing.",
+  },
+
+  prepareSwap: {
+    name: "prepareSwap",
+    description:
+      "Prepares a swap without broadcasting a transaction. " +
+      "Finds the route, applies slippage, and returns { tradeInfo, calldata: { to, data, value }, swapType }. " +
+      "Return the calldata to the caller, wallet, or signer for approval and execution.",
+    inputSchema: {
+      type: "object",
+      required: ["chainId", "amountIn", "tokenIn", "tokenOut", "toAddress"],
+      properties: {
+        chainId: chainIdSchema,
+        amountIn: rawAmountSchema,
+        tokenIn: addressSchema,
+        tokenOut: addressSchema,
+        toAddress: { ...addressSchema, description: "Recipient wallet address for output tokens." },
+        maxSteps: maxStepsSchema,
+        slippageBps: slippageBpsSchema,
+      },
+    },
+    agentHints:
+      "Use prepareSwap for calldata-only agent workflows. " +
+      "For ERC-20 input, check allowance first and prefer exact approval calldata for the amount being swapped.",
+  },
+
+  executeSwap: {
+    name: "executeSwap",
+    description:
+      "Executes a swap with a router that was created from an intentionally authorized signer. " +
+      "This broadcasts the prepared transaction and waits for the receipt. " +
+      "Do not use this in read-only or user-custody flows; use prepareSwap instead.",
+    inputSchema: {
+      type: "object",
+      required: ["chainId", "amountIn", "tokenIn", "tokenOut", "toAddress"],
+      properties: {
+        chainId: chainIdSchema,
+        amountIn: rawAmountSchema,
+        tokenIn: addressSchema,
+        tokenOut: addressSchema,
+        toAddress: { ...addressSchema, description: "Recipient wallet address for output tokens." },
+        maxSteps: maxStepsSchema,
+        slippageBps: slippageBpsSchema,
+      },
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        hash: { type: "string" },
+        receipt: { type: "object" },
+        tradeInfo: { type: "object" },
+        calldata: { type: "object" },
+        swapType: { type: "string" },
+      },
+    },
+    agentHints:
+      "Only call executeSwap when the application has deliberately granted the SDK signer authority. " +
+      "For human wallets, return prepareSwap calldata to the wallet instead.",
   },
 
   checkAllowance: {
     name: "checkAllowance",
     description:
       "Checks whether ownerAddress has approved the router to spend at least requiredAmount of an ERC-20 token. " +
-      "Call this before any ERC-20 input swap. If approved is false, call getApprovalCalldata first.",
+      "Call this before any ERC-20 input swap. If approved is false, prefer getApprovalCalldataForAmount with exact mode.",
     inputSchema: {
       type: "object",
       required: ["chainId", "tokenAddress", "ownerAddress", "requiredAmount"],
@@ -412,8 +470,9 @@ export const TOOL_SCHEMAS: Record<string, ToolSchema & { agentHints?: string }> 
   getApprovalCalldata: {
     name: "getApprovalCalldata",
     description:
-      "Builds ERC-20 approval calldata for the router. Returns { to, data, value }. " +
-      "This is a prerequisite for ERC-20 input swaps when checkAllowance returns approved: false.",
+      "Legacy ERC-20 approval calldata helper for the router. Returns { to, data, value }. " +
+      "Pass amount for exact approval; omitting amount builds unlimited approval for compatibility. " +
+      "Agent integrations should prefer getApprovalCalldataForAmount with mode: exact.",
     inputSchema: {
       type: "object",
       required: ["chainId", "tokenAddress"],
@@ -423,6 +482,29 @@ export const TOOL_SCHEMAS: Record<string, ToolSchema & { agentHints?: string }> 
         amount: { ...rawAmountSchema, description: "Approval amount. Omit for unlimited (MaxUint256)." },
       },
     },
+  },
+
+  getApprovalCalldataForAmount: {
+    name: "getApprovalCalldataForAmount",
+    description:
+      "Builds ERC-20 approval calldata with an explicit approval mode. " +
+      "Use mode: exact with the swap amount for automated wallets and agents; use mode: unlimited only when the caller explicitly accepts that allowance.",
+    inputSchema: {
+      type: "object",
+      required: ["chainId", "tokenAddress", "mode"],
+      properties: {
+        chainId: chainIdSchema,
+        tokenAddress: addressSchema,
+        mode: {
+          type: "string",
+          enum: ["exact", "unlimited"],
+          description: "Approval mode. exact requires amount; unlimited approves MaxUint256.",
+        },
+        amount: { ...rawAmountSchema, description: "Required when mode is exact. Ignored for unlimited approval." },
+      },
+    },
+    agentHints:
+      "For an ERC-20 swap amountIn, call getApprovalCalldataForAmount(tokenIn, { mode: 'exact', amount: amountIn }) when checkAllowance is false.",
   },
 
   // ── Affiliate ────────────────────────────────────────────────────────────────

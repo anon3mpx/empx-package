@@ -18,7 +18,14 @@ const wallet = require("empx-swap-sdk/wallet");
 const agent = require("empx-swap-sdk/agent");
 ```
 
-The package ships CommonJS output with TypeScript declarations.
+ESM imports are also supported:
+
+```javascript
+import { createRouter, CHAIN_IDS } from "empx-swap-sdk";
+import { createBurnerWallet } from "empx-swap-sdk/wallet";
+```
+
+The package ships dual CommonJS and ESM output with TypeScript declarations.
 
 ## Quick Start
 
@@ -49,7 +56,7 @@ console.log(calldata);
 2. Call `getTradeInfo()` to fetch a route, quote metadata, and slippage-adjusted output.
 3. For ERC-20 input tokens, call `checkAllowance()` and build approval calldata if needed.
 4. Build swap calldata with `getSwapCalldata()`, `getSwapFromNativeCalldata()`,
-   `getSwapToNativeCalldata()`, or `swap()`.
+   `getSwapToNativeCalldata()`, `prepareSwap()`, or the legacy `swap()` alias.
 5. Submit the returned `{ to, data, value }` through your own wallet or signer.
 
 Quotes expire after 30 seconds. Check `tradeInfo.validUntil > Date.now()` before
@@ -222,10 +229,11 @@ const nativeToErc20 = router.getSwapFromNativeCalldata(tradeInfo, "0xRecipient")
 const erc20ToNative = router.getSwapToNativeCalldata(tradeInfo, "0xRecipient");
 ```
 
-`swap()` fetches trade info and selects the correct calldata builder:
+`prepareSwap()` fetches trade info and selects the correct calldata builder.
+`swap()` is retained as the legacy alias for the same calldata-only behavior:
 
 ```javascript
-const { tradeInfo, calldata, swapType } = await router.swap(
+const { tradeInfo, calldata, swapType } = await router.prepareSwap(
   amountIn,
   tokenIn,
   tokenOut,
@@ -237,6 +245,14 @@ const { tradeInfo, calldata, swapType } = await router.swap(
 
 `swapType` is one of `WrapNative`, `UnwrapNative`, `ERC20ToERC20`,
 `NativeToERC20`, or `ERC20ToNative`.
+
+If the router was created with a signer, `executeSwap()` sends the transaction
+and waits for the receipt:
+
+```javascript
+const result = await router.executeSwap(amountIn, tokenIn, tokenOut, recipient);
+console.log(result.hash);
+```
 
 ### Wrap and Unwrap
 
@@ -326,7 +342,7 @@ Recommended agent response shape:
     "fee": "28",
     "quoteId": "a3f2c1d4-...",
     "validUntil": 1712345678000,
-    "sdkVersion": "2.0.0"
+    "sdkVersion": "2.1.0"
   },
   "calldata": {
     "to": "0x...",
@@ -378,6 +394,49 @@ const router = createRouter(CHAIN_IDS.ARBITRUM, wallet.signer);
 Browser wallet helpers are also exported: `connectMetaMask`, `connectRabby`,
 `connectInjected`, `connectPrivy`, and `connectWagmi`.
 
+### EIP-6963 Wallet Discovery
+
+```javascript
+const {
+  discoverInjectedProviders,
+  connectViaEip6963,
+  KNOWN_WALLET_RDNS,
+} = require("empx-swap-sdk");
+
+const wallets = await discoverInjectedProviders();
+const rabby = await connectViaEip6963(KNOWN_WALLET_RDNS.RABBY);
+```
+
+`connectMetaMask()` and `connectRabby()` prefer EIP-6963 discovery and fall
+back to legacy `window.ethereum` behavior.
+
+### EIP-5792 Wallet Calls
+
+```javascript
+const {
+  calldataToWalletCall,
+  getWalletCapabilities,
+  sendWalletCalls,
+} = require("empx-swap-sdk");
+
+const approval = router.getApprovalCalldataForAmount(tokenIn, {
+  mode: "exact",
+  amount: amountIn,
+});
+const prepared = await router.prepareSwap(amountIn, tokenIn, tokenOut, recipient);
+
+await getWalletCapabilities(provider, wallet.address, "0xa4b1");
+await sendWalletCalls(provider, {
+  version: "2.0.0",
+  chainId: "0xa4b1",
+  from: wallet.address,
+  calls: [
+    calldataToWalletCall(approval),
+    calldataToWalletCall(prepared.calldata),
+  ],
+});
+```
+
 ## x402 RPC Provider
 
 ```javascript
@@ -413,6 +472,72 @@ const {
 
 Protocol fee and affiliate helpers are exported for integrations that need
 explicit fee reporting or tier classification. Pair-type fees are opt-in.
+
+For server-side multi-tenant integrations, prefer instance-scoped config:
+
+```javascript
+const router = createRouter(CHAIN_IDS.ARBITRUM, provider, {
+  protocolFeeBps: 28,
+  pairTypeFees: {
+    volatileVolatileBps: 28,
+    volatileStableBps: 15,
+    stableStableBps: 9,
+  },
+});
+```
+
+The global fee setters are retained for compatibility, but per-router config
+avoids crosstalk between tenants.
+
+## Permit and Approval Helpers
+
+```javascript
+const {
+  buildPermitTypedData,
+  splitPermitSignature,
+} = require("empx-swap-sdk");
+
+const typed = buildPermitTypedData({
+  tokenName,
+  tokenVersion: "1",
+  chainId,
+  verifyingContract: tokenIn,
+  owner,
+  spender: router.chain.ROUTER_ADDRESS,
+  value: amountIn,
+  nonce,
+  deadline,
+});
+
+const signature = await signer.signTypedData(
+  typed.domain,
+  typed.types,
+  typed.message
+);
+const permit = splitPermitSignature(signature, deadline);
+const calldata = router.getSwapWithPermitCalldata(tradeInfo, recipient, permit);
+```
+
+For ordinary approvals, `getApprovalCalldata(token)` still builds unlimited
+approval for compatibility. Agent integrations should prefer:
+
+```javascript
+const approval = router.getApprovalCalldataForAmount(tokenIn, {
+  mode: "exact",
+  amount: amountIn,
+});
+```
+
+## Viem and Wagmi Adapters
+
+```javascript
+const { toViemTransaction } = require("empx-swap-sdk/adapters/viem");
+const { toWagmiTransaction } = require("empx-swap-sdk/adapters/wagmi");
+
+const prepared = await router.prepareSwap(amountIn, tokenIn, tokenOut, recipient);
+const viemTx = toViemTransaction(prepared.calldata);
+const wagmiTx = toWagmiTransaction(prepared.calldata);
+```
 
 ## Split Routing
 

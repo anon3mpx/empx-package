@@ -26,6 +26,28 @@ export {
   getNativeBalance,
 } from "./wallet.js";
 
+export {
+  discoverInjectedProviders,
+  getInjectedProviderByRdns,
+  connectViaEip6963,
+  KNOWN_WALLET_RDNS,
+} from "./wallet/eip6963.js";
+export type {
+  Eip6963ProviderInfo,
+  Eip6963ProviderDetail,
+} from "./wallet/eip6963.js";
+
+export {
+  calldataToWalletCall,
+  getWalletCapabilities,
+  sendWalletCalls,
+} from "./wallet/eip5792.js";
+export type {
+  Eip5792Call,
+  Eip5792SendCallsParams,
+  Eip1193RequestProvider,
+} from "./wallet/eip5792.js";
+
 // ─── x402 RPC adapter ─────────────────────────────────────────────────────────
 
 export {
@@ -136,6 +158,27 @@ export {
   isPositiveBigInt,
 } from "./core/validators.js";
 
+export {
+  getApprovalCalldataForAmount,
+  getSwapWithPermitCalldata,
+  getSwapToNativeWithPermitCalldata,
+} from "./core/calldata.js";
+
+export {
+  buildPermitTypedData,
+  splitPermitSignature,
+} from "./core/permit.js";
+export type { PermitTypedDataInput } from "./core/permit.js";
+
+export { toViemTransaction } from "./adapters/viem.js";
+export type {
+  ViemWalletClientLike,
+  ViemTransactionRequest,
+} from "./adapters/viem.js";
+
+export { toWagmiTransaction } from "./adapters/wagmi.js";
+export type { WagmiTransactionRequest } from "./adapters/wagmi.js";
+
 // ─── Split routing (Phase 1 — opt-in, additive) ──────────────────────────────
 
 export { findBestSplitRouting } from "./core/splitSolver.js";
@@ -167,6 +210,9 @@ export type {
   TradeInfo,
   AllowanceResult,
   CalldataResult,
+  PermitSignature,
+  ApprovalAmountMode,
+  ApprovalCalldataOptions,
   SwapType,
   SwapResult,
   QuoteUSDResult,

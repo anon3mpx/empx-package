@@ -1,6 +1,12 @@
 // ─── Calldata Builders ────────────────────────────────────────────────────────
 import { ethers, isAddress } from "ethers";
-import type { ChainConfig, TradeInfo, CalldataResult } from "../types.js";
+import type {
+  ApprovalCalldataOptions,
+  ChainConfig,
+  TradeInfo,
+  CalldataResult,
+  PermitSignature,
+} from "../types.js";
 import { ERC20_ABI, PLS_INTEGRATOR_ROUTER_ABI, ETH_INTEGRATOR_ROUTER_ABI } from "./abi.js";
 
 function validateAddress(address: string, name: string): void {
@@ -89,6 +95,68 @@ export function getSwapToNativeCalldata(
   );
 }
 
+function resolveToNativePermitFunction(chainConfig: ChainConfig): string {
+  const preferred = `${chainConfig.nativeSwapFns.toNative}WithPermit`;
+  const names = new Set(
+    chainConfig.routerAbi
+      .filter((entry: any) => entry?.type === "function")
+      .map((entry: any) => entry.name)
+  );
+  if (names.has(preferred)) return preferred;
+  if (names.has("swapNoSplitToETHWithPermit")) return "swapNoSplitToETHWithPermit";
+  throw new Error(`chainConfig for ${chainConfig.name} is missing swap-to-native permit function`);
+}
+
+export function getSwapWithPermitCalldata(
+  tradeInfo: TradeInfo,
+  toAddress: string,
+  chainConfig: ChainConfig,
+  feeBps: string,
+  permit: PermitSignature
+): CalldataResult {
+  validateTradeInfo(tradeInfo);
+  validateAddress(toAddress, "toAddress");
+  validateChainConfig(chainConfig);
+
+  return encodeCalldata(
+    chainConfig.routerAbi, chainConfig.ROUTER_ADDRESS, "swapNoSplitWithPermit",
+    [
+      buildTradeStruct(tradeInfo),
+      toAddress,
+      BigInt(feeBps),
+      BigInt(permit.deadline),
+      permit.v,
+      permit.r,
+      permit.s,
+    ]
+  );
+}
+
+export function getSwapToNativeWithPermitCalldata(
+  tradeInfo: TradeInfo,
+  toAddress: string,
+  chainConfig: ChainConfig,
+  feeBps: string,
+  permit: PermitSignature
+): CalldataResult {
+  validateTradeInfo(tradeInfo);
+  validateAddress(toAddress, "toAddress");
+  validateChainConfig(chainConfig);
+
+  return encodeCalldata(
+    chainConfig.routerAbi, chainConfig.ROUTER_ADDRESS, resolveToNativePermitFunction(chainConfig),
+    [
+      buildTradeStruct(tradeInfo),
+      toAddress,
+      BigInt(feeBps),
+      BigInt(permit.deadline),
+      permit.v,
+      permit.r,
+      permit.s,
+    ]
+  );
+}
+
 // ─── Affiliate / Integrator calldata (on-chain _integratorId) ──────────────────
 
 export function getAffiliateSwapCalldata(
@@ -160,5 +228,20 @@ export function getApprovalCalldata(
   validateAddress(tokenAddress, "tokenAddress");
   validateAddress(spenderAddress, "spenderAddress");
   const approvalAmount = amount != null ? BigInt(amount) : ethers.MaxUint256;
+  return encodeCalldata(ERC20_ABI, tokenAddress, "approve", [spenderAddress, approvalAmount]);
+}
+
+export function getApprovalCalldataForAmount(
+  tokenAddress: string,
+  spenderAddress: string,
+  options: ApprovalCalldataOptions
+): CalldataResult {
+  validateAddress(tokenAddress, "tokenAddress");
+  validateAddress(spenderAddress, "spenderAddress");
+  const mode = options.mode ?? "exact";
+  if (mode === "exact" && options.amount == null) {
+    throw new Error("Exact approval requires an amount");
+  }
+  const approvalAmount = mode === "unlimited" ? ethers.MaxUint256 : BigInt(options.amount!);
   return encodeCalldata(ERC20_ABI, tokenAddress, "approve", [spenderAddress, approvalAmount]);
 }

@@ -13,7 +13,7 @@ import { mkdirSync, copyFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, dirname } from "node:path";
 
 const SRC_ROOT = "src";
-const DIST_ROOT = "dist";
+const DIST_ROOTS = ["dist/cjs", "dist/esm"];
 
 function walk(dir, callback) {
   for (const entry of readdirSync(dir)) {
@@ -31,11 +31,13 @@ let copied = 0;
 walk(SRC_ROOT, (file) => {
   if (!file.endsWith(".json")) return;
   const rel = relative(SRC_ROOT, file);
-  const dest = join(DIST_ROOT, rel);
-  mkdirSync(dirname(dest), { recursive: true });
-  copyFileSync(file, dest);
-  copied += 1;
-  console.log(`  copied ${rel}`);
+  for (const root of DIST_ROOTS) {
+    const dest = join(root, rel);
+    mkdirSync(dirname(dest), { recursive: true });
+    copyFileSync(file, dest);
+    copied += 1;
+    console.log(`  copied ${rel} -> ${root}`);
+  }
 });
 
-console.log(`Copied ${copied} asset file(s) to ${DIST_ROOT}/`);
+console.log(`Copied ${copied} asset file(s) to ${DIST_ROOTS.join(", ")}/`);
