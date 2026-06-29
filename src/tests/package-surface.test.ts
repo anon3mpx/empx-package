@@ -15,6 +15,10 @@ const requiredRootExports = [
   "connectInjected",
   "connectWagmi",
   "TOOL_SCHEMAS",
+  "prepareWalletSwap",
+  "parseWalletCapabilities",
+  "canSendWalletCalls",
+  "signPermit",
   "toViemTransaction",
   "toWagmiTransaction",
 ] as const;

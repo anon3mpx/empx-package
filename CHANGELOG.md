@@ -15,6 +15,7 @@ All notable changes to this SDK are documented here. Format follows
 - **Prepare/execute API split** — added `prepareSwap()` as the explicit calldata path and `executeSwap()` for signer-backed transaction execution while preserving legacy `swap()` behavior.
 - **EIP-5792 helper module** — added calldata-to-wallet-call conversion, `wallet_getCapabilities`, and `wallet_sendCalls` helpers for batched wallet execution.
 - **ERC-2612 permit helpers** — added permit typed-data helpers plus `swapNoSplitWithPermit` and swap-to-native permit calldata builders with deadline support.
+- **Wallet execution planner** — added `prepareWalletSwap()` to choose between swap-only, ERC-2612 permit, EIP-5792 batched approval+swap, and exact approval fallback flows.
 - **Explicit approval modes** — added exact/unlimited approval helper while preserving the legacy unlimited default when amount is omitted.
 - **Viem and wagmi adapters** — added dependency-free calldata-to-transaction request helpers.
 - **Security policy** — added `SECURITY.md` with reporting and integration-safety guidance.

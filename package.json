@@ -31,6 +31,12 @@
       "require": "./dist/cjs/wallet/eip5792.js",
       "default": "./dist/esm/wallet/eip5792.js"
     },
+    "./wallet/executionPlan": {
+      "types": "./dist/esm/wallet/executionPlan.d.ts",
+      "import": "./dist/esm/wallet/executionPlan.js",
+      "require": "./dist/cjs/wallet/executionPlan.js",
+      "default": "./dist/esm/wallet/executionPlan.js"
+    },
     "./agent": {
       "types": "./dist/esm/agent/schemas.d.ts",
       "import": "./dist/esm/agent/schemas.js",

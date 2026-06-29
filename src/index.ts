@@ -39,14 +39,27 @@ export type {
 
 export {
   calldataToWalletCall,
+  canSendWalletCalls,
   getWalletCapabilities,
+  parseWalletCapabilities,
   sendWalletCalls,
 } from "./wallet/eip5792.js";
 export type {
   Eip5792Call,
   Eip5792SendCallsParams,
   Eip1193RequestProvider,
+  WalletCapabilitiesSummary,
 } from "./wallet/eip5792.js";
+
+export {
+  prepareWalletSwap,
+} from "./wallet/executionPlan.js";
+export type {
+  PrepareWalletSwapOptions,
+  WalletSwapExecutionPlan,
+  WalletSwapExecutionStrategy,
+  WalletSwapPermitOptions,
+} from "./wallet/executionPlan.js";
 
 // ─── x402 RPC adapter ─────────────────────────────────────────────────────────
 
@@ -166,9 +179,16 @@ export {
 
 export {
   buildPermitTypedData,
+  readPermitMetadata,
+  signPermit,
   splitPermitSignature,
 } from "./core/permit.js";
-export type { PermitTypedDataInput } from "./core/permit.js";
+export type {
+  PermitMetadata,
+  PermitMetadataInput,
+  PermitTypedDataInput,
+  SignPermitInput,
+} from "./core/permit.js";
 
 export { toViemTransaction } from "./adapters/viem.js";
 export type {

@@ -437,6 +437,59 @@ await sendWalletCalls(provider, {
 });
 ```
 
+### Polished Wallet Execution Planning
+
+For wallet integrations, `prepareWalletSwap()` chooses the safest available
+flow in this order: already-approved swap, ERC-2612 permit, EIP-5792 batched
+exact approval + swap, then exact approval followed by swap.
+
+```javascript
+const {
+  prepareWalletSwap,
+  createRouter,
+  CHAIN_IDS,
+} = require("empx-swap-sdk");
+
+const router = createRouter(CHAIN_IDS.ARBITRUM, rpcProvider);
+const plan = await prepareWalletSwap({
+  router,
+  account: wallet.address,
+  amountIn,
+  tokenIn,
+  tokenOut,
+  recipient,
+  preferPermit: true,
+  permit: {
+    signer,
+    tokenName,
+    tokenVersion: "1",
+    nonce,
+    deadline,
+  },
+  preferBatch: true,
+  eip1193Provider: browserProvider,
+});
+
+if (plan.strategy === "permit") {
+  await signer.sendTransaction(plan.swap);
+} else if (plan.strategy === "batch") {
+  await browserProvider.request({
+    method: "wallet_sendCalls",
+    params: [{
+      version: "2.0.0",
+      chainId: `0x${router.chain.chainId.toString(16)}`,
+      from: wallet.address,
+      calls: plan.walletCalls,
+    }],
+  });
+} else if (plan.strategy === "approval-then-swap") {
+  await signer.sendTransaction(plan.approval);
+  await signer.sendTransaction(plan.swap);
+} else {
+  await signer.sendTransaction(plan.swap);
+}
+```
+
 ## x402 RPC Provider
 
 ```javascript

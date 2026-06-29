@@ -19,6 +19,7 @@ const SUITES: TestSuite[] = [
   { name: "Package Surface (unit)", file: "src/tests/package-surface.test.ts", needsRpc: false, slow: false },
   { name: "EIP-6963 Wallet Discovery (unit)", file: "src/wallet/eip6963.test.ts", needsRpc: false, slow: false },
   { name: "EIP-5792 Wallet Calls (unit)", file: "src/wallet/eip5792.test.ts", needsRpc: false, slow: false },
+  { name: "Wallet Execution Planner (unit)", file: "src/wallet/executionPlan.test.ts", needsRpc: false, slow: false },
   { name: "Pathfind & Quotes", file: "src/tests/pathfind.test.ts", needsRpc: true, slow: true },
   { name: "Dual Affiliate", file: "src/tests/affiliate.test.ts", needsRpc: true, slow: true },
   { name: "Split Routing", file: "src/tests/split.test.ts", needsRpc: true, slow: true },
