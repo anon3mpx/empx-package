@@ -56,7 +56,7 @@ async function testChain(chain: typeof CHAINS_TO_TEST[number]) {
     assert(typeof tradeInfo.fee === "string", "getTradeInfo: has fee");
     assert(typeof tradeInfo.validUntil === "number", "getTradeInfo: has validUntil TTL");
     assert(tradeInfo.validUntil > Date.now(), "getTradeInfo: quote not yet expired");
-    assert(tradeInfo.sdkVersion === "2.0.0", "getTradeInfo: sdkVersion is 2.0.0");
+    assert(tradeInfo.sdkVersion === "2.1.0", "getTradeInfo: sdkVersion is 2.1.0");
     console.log(`  TradeInfo: amountIn=${tradeInfo.amountIn}, amountOut=${tradeInfo.amountOut}, fee=${tradeInfo.fee}bps, TTL=${tradeInfo.validUntil - Date.now()}ms`);
   } catch (err: any) {
     console.error(`  getTradeInfo error: ${err.message}`);

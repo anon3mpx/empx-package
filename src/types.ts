@@ -32,8 +32,12 @@ export interface TradeInfo {
 
 export interface AllowanceResult { approved: boolean; allowance: string; }
 export interface CalldataResult { to: string; data: string; value: string; }
+export interface PermitSignature { deadline: string | bigint; v: number; r: string; s: string; }
+export type ApprovalAmountMode = "exact" | "unlimited";
+export interface ApprovalCalldataOptions { mode?: ApprovalAmountMode; amount?: string | bigint; }
 export type SwapType = "WrapNative" | "UnwrapNative" | "NativeToERC20" | "ERC20ToNative" | "ERC20ToERC20";
 export interface SwapResult { tradeInfo: TradeInfo; calldata: CalldataResult; swapType: SwapType; }
+export interface ExecuteSwapResult extends SwapResult { hash: string; receipt: unknown; }
 export interface QuoteUSDResult { usd: number; pricePerToken: number; decimals: number; humanAmount: number; }
 
 export interface AffiliateConfig { address: string; feeBps: number; }
@@ -47,6 +51,12 @@ export type ProviderInput = string | string[] | Provider | Signer;
 export interface RouterConfig {
   integratorId?: string;
   affiliate?: AffiliateConfig;
+  protocolFeeBps?: string | number | bigint;
+  pairTypeFees?: false | Partial<{
+    volatileVolatileBps: number;
+    volatileStableBps: number;
+    stableStableBps: number;
+  }>;
 }
 
 export interface BatchRouterConfig extends RouterConfig {
@@ -119,10 +129,15 @@ export interface EmpxRouter {
   getSwapCalldata(tradeInfo: TradeInfo, toAddress: string): CalldataResult;
   getSwapFromNativeCalldata(tradeInfo: TradeInfo, toAddress: string): CalldataResult;
   getSwapToNativeCalldata(tradeInfo: TradeInfo, toAddress: string): CalldataResult;
+  getSwapWithPermitCalldata(tradeInfo: TradeInfo, toAddress: string, permit: PermitSignature): CalldataResult;
+  getSwapToNativeWithPermitCalldata(tradeInfo: TradeInfo, toAddress: string, permit: PermitSignature): CalldataResult;
   getWrapCalldata(tradeInfo: Pick<TradeInfo, "amountIn">): CalldataResult;
   getUnwrapCalldata(tradeInfo: Pick<TradeInfo, "amountIn">): CalldataResult;
   getApprovalCalldata(tokenAddress: string, amount?: string | bigint): CalldataResult;
+  getApprovalCalldataForAmount(tokenAddress: string, options: ApprovalCalldataOptions): CalldataResult;
   swap(amountIn: string | bigint, tokenIn: string, tokenOut: string, toAddress: string, maxSteps?: number, slippageBps?: number, feeContext?: FeeResolutionContext): Promise<SwapResult>;
+  prepareSwap(amountIn: string | bigint, tokenIn: string, tokenOut: string, toAddress: string, maxSteps?: number, slippageBps?: number, feeContext?: FeeResolutionContext): Promise<SwapResult>;
+  executeSwap(amountIn: string | bigint, tokenIn: string, tokenOut: string, toAddress: string, maxSteps?: number, slippageBps?: number, feeContext?: FeeResolutionContext): Promise<ExecuteSwapResult>;
   getTokenPriceUSD(tokenAddress: string, maxSteps?: number): Promise<number>;
   getQuoteUSD(tokenAddress: string, rawAmount: string | bigint, maxSteps?: number): Promise<QuoteUSDResult>;
   getMultipleTokenPricesUSD(tokenAddresses: string[], maxSteps?: number): Promise<Record<string, number>>;

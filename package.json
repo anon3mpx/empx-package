@@ -1,32 +1,63 @@
 {
   "name": "empx-swap-sdk",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "description": "Multi-chain DEX swap SDK — TypeScript-native, AI-agent-first, with dual on-chain + off-chain affiliate models",
   "type": "commonjs",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/cjs/index.js",
+  "types": "./dist/esm/index.d.ts",
+  "sideEffects": false,
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.js",
-      "default": "./dist/index.js"
+      "types": "./dist/esm/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js",
+      "default": "./dist/esm/index.js"
     },
     "./wallet": {
-      "types": "./dist/wallet.d.ts",
-      "import": "./dist/wallet.js",
-      "require": "./dist/wallet.js",
-      "default": "./dist/wallet.js"
+      "types": "./dist/esm/wallet.d.ts",
+      "import": "./dist/esm/wallet.js",
+      "require": "./dist/cjs/wallet.js",
+      "default": "./dist/esm/wallet.js"
+    },
+    "./wallet/eip6963": {
+      "types": "./dist/esm/wallet/eip6963.d.ts",
+      "import": "./dist/esm/wallet/eip6963.js",
+      "require": "./dist/cjs/wallet/eip6963.js",
+      "default": "./dist/esm/wallet/eip6963.js"
+    },
+    "./wallet/eip5792": {
+      "types": "./dist/esm/wallet/eip5792.d.ts",
+      "import": "./dist/esm/wallet/eip5792.js",
+      "require": "./dist/cjs/wallet/eip5792.js",
+      "default": "./dist/esm/wallet/eip5792.js"
+    },
+    "./wallet/executionPlan": {
+      "types": "./dist/esm/wallet/executionPlan.d.ts",
+      "import": "./dist/esm/wallet/executionPlan.js",
+      "require": "./dist/cjs/wallet/executionPlan.js",
+      "default": "./dist/esm/wallet/executionPlan.js"
     },
     "./agent": {
-      "types": "./dist/agent/schemas.d.ts",
-      "import": "./dist/agent/schemas.js",
-      "require": "./dist/agent/schemas.js",
-      "default": "./dist/agent/schemas.js"
+      "types": "./dist/esm/agent/schemas.d.ts",
+      "import": "./dist/esm/agent/schemas.js",
+      "require": "./dist/cjs/agent/schemas.js",
+      "default": "./dist/esm/agent/schemas.js"
+    },
+    "./adapters/viem": {
+      "types": "./dist/esm/adapters/viem.d.ts",
+      "import": "./dist/esm/adapters/viem.js",
+      "require": "./dist/cjs/adapters/viem.js",
+      "default": "./dist/esm/adapters/viem.js"
+    },
+    "./adapters/wagmi": {
+      "types": "./dist/esm/adapters/wagmi.d.ts",
+      "import": "./dist/esm/adapters/wagmi.js",
+      "require": "./dist/cjs/adapters/wagmi.js",
+      "default": "./dist/esm/adapters/wagmi.js"
     }
   },
   "scripts": {
-    "build": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\" && tsc -p tsconfig.build.json && node scripts/copy-assets.mjs",
+    "build": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\" && tsc -p tsconfig.cjs.json && tsc -p tsconfig.esm.json && node scripts/copy-assets.mjs && node scripts/write-esm-package.mjs && node scripts/fix-esm-json-imports.mjs",
     "typecheck": "tsc --noEmit",
     "test": "tsx src/tests/smoke.test.ts",
     "test:all": "tsx src/tests/run-all.ts",
@@ -63,6 +94,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md",
+    "SECURITY.md"
   ]
 }
