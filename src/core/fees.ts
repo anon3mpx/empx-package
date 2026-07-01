@@ -8,7 +8,7 @@ const AFFILIATE_SHARE_DIVISOR = BigInt(10_000);
 
 let _protocolFeeBps: bigint = DEFAULT_PROTOCOL_FEE_BPS;
 
-function normalizeProtocolFeeBps(feeRaw: string | number | bigint): bigint {
+export function normalizeProtocolFeeBps(feeRaw: string | number | bigint): bigint {
   let fee: bigint;
   try { fee = BigInt(feeRaw); } catch {
     throw new Error(`Invalid protocol fee: "${feeRaw}"`);

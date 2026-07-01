@@ -5,6 +5,31 @@ All notable changes to this SDK are documented here. Format follows
 
 ---
 
+## [2.1.0] — 2026-06-24
+
+### Added
+
+- **Dual CJS/ESM package build** — package exports now route `require` to `dist/cjs` and `import` to `dist/esm`; `sideEffects: false` added for bundlers.
+- **EIP-6963 wallet discovery** — added `discoverInjectedProviders`, `getInjectedProviderByRdns`, `connectViaEip6963`, and `KNOWN_WALLET_RDNS`; `connectMetaMask` and `connectRabby` now prefer EIP-6963 with legacy injected fallback.
+- **Instance-scoped fee configuration** — `createRouter()` and batch factories accept `protocolFeeBps` and `pairTypeFees` so server-side multi-tenant integrations can avoid global fee crosstalk.
+- **Prepare/execute API split** — added `prepareSwap()` as the explicit calldata path and `executeSwap()` for signer-backed transaction execution while preserving legacy `swap()` behavior.
+- **EIP-5792 helper module** — added calldata-to-wallet-call conversion, `wallet_getCapabilities`, and `wallet_sendCalls` helpers for batched wallet execution.
+- **ERC-2612 permit helpers** — added permit typed-data helpers plus `swapNoSplitWithPermit` and swap-to-native permit calldata builders with deadline support.
+- **Wallet execution planner** — added `prepareWalletSwap()` to choose between swap-only, ERC-2612 permit, EIP-5792 batched approval+swap, and exact approval fallback flows.
+- **Explicit approval modes** — added exact/unlimited approval helper while preserving the legacy unlimited default when amount is omitted.
+- **Viem and wagmi adapters** — added dependency-free calldata-to-transaction request helpers.
+- **Security policy** — added `SECURITY.md` with reporting and integration-safety guidance.
+
+### Changed
+
+- **Docs** — README now documents CJS/ESM imports, EIP-6963, EIP-5792, permit, exact approval, instance-scoped fees, and `prepareSwap`/`executeSwap`.
+
+### Deprecated
+
+- Global fee setters remain available but are discouraged for multi-tenant server use; prefer per-router `protocolFeeBps` and `pairTypeFees`.
+
+---
+
 ## [2.0.0] — 2026-06-09
 
 ### Added

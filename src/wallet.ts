@@ -7,6 +7,7 @@
 
 import { ethers } from "ethers";
 import type { Provider } from "ethers";
+import { connectViaEip6963, KNOWN_WALLET_RDNS } from "./wallet/eip6963.js";
 import type {
   WalletInfo, WalletType,
   BurnerWalletOptions, PrivateKeyWalletOptions, MnemonicWalletOptions,
@@ -118,30 +119,40 @@ export function fromMnemonic(options: MnemonicWalletOptions): WalletInfo {
  *   const router = createRouter(42161, wallet.signer!);
  */
 export async function connectMetaMask(): Promise<WalletInfo> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const win = globalThis as any;
-  if (!win?.ethereum) {
-    throw new Error("MetaMask not found. Ensure you are in a browser with MetaMask installed.");
+  try {
+    const discovered = await connectViaEip6963(KNOWN_WALLET_RDNS.METAMASK);
+    return { ...discovered, type: "metamask" };
+  } catch {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const win = globalThis as any;
+    if (!win?.ethereum) {
+      throw new Error("MetaMask not found. Ensure you are in a browser with MetaMask installed.");
+    }
+    const browserProvider = new ethers.BrowserProvider(win.ethereum as ethers.Eip1193Provider);
+    await browserProvider.send("eth_requestAccounts", []);
+    const signer = await browserProvider.getSigner();
+    return {
+      type: "metamask",
+      address: await signer.getAddress(),
+      isAgentWallet: false,
+      isHumanWallet: true,
+      signer,
+      provider: browserProvider,
+    };
   }
-  const browserProvider = new ethers.BrowserProvider(win.ethereum as ethers.Eip1193Provider);
-  await browserProvider.send("eth_requestAccounts", []);
-  const signer = await browserProvider.getSigner();
-  return {
-    type: "metamask",
-    address: await signer.getAddress(),
-    isAgentWallet: false,
-    isHumanWallet: true,
-    signer,
-    provider: browserProvider,
-  };
 }
 
 /**
  * Connects to Rabby Wallet (uses window.ethereum like MetaMask).
  */
 export async function connectRabby(): Promise<WalletInfo> {
-  const info = await connectMetaMask();
-  return { ...info, type: "rabby" };
+  try {
+    const discovered = await connectViaEip6963(KNOWN_WALLET_RDNS.RABBY);
+    return { ...discovered, type: "rabby" };
+  } catch {
+    const info = await connectMetaMask();
+    return { ...info, type: "rabby" };
+  }
 }
 
 /**

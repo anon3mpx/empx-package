@@ -14,12 +14,14 @@ import {
   getProtocolFeeBps, applyProtocolFee as applyFee,
   calculateAffiliateAmount, affiliateAbsoluteBps,
 } from "./core/fees.js";
-import { resolveTieredFeeBps, isStableToken, isPairTypeFeesEnabled } from "./core/feeTiers.js";
+import { createFeeResolver } from "./core/routerFees.js";
 import {
   getSwapCalldata, getSwapFromNativeCalldata, getSwapToNativeCalldata,
+  getSwapWithPermitCalldata, getSwapToNativeWithPermitCalldata,
   getAffiliateSwapCalldata, getAffiliateSwapFromNativeCalldata,
   getAffiliateSwapToNativeCalldata,
   getWrapCalldata, getUnwrapCalldata, getApprovalCalldata,
+  getApprovalCalldataForAmount,
 } from "./core/calldata.js";
 import {
   getTokenPriceUSD, getQuoteUSD, getMultipleTokenPricesUSD,
@@ -32,7 +34,7 @@ import {
   assertQuoteNotExpired, isValidAddress,
 } from "./core/validators.js";
 
-const SDK_VERSION = "2.0.0";
+const SDK_VERSION = "2.1.0";
 const QUOTE_TTL_MS = 30_000;
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -178,6 +180,7 @@ function createSingleRouter(
   const chainInfo: ChainInfo = stripRouterAbi(chainConfig);
   const integratorId: string | undefined = config.integratorId;
   const affiliateConfig: AffiliateConfig | undefined = config.affiliate;
+  const resolveFeeBps = createFeeResolver(config, chainConfig);
 
   // ─── Resolve provider ────────────────────────────────────────────────────────
   const resolvedProvider = resolveProviderInput(chainId, chainConfig.rpcUrl, provider);
@@ -272,18 +275,7 @@ function createSingleRouter(
     tokenIn?: string,
     tokenOut?: string,
   ): bigint {
-    if (isPairTypeFeesEnabled()) {
-      const effectiveCtx: FeeResolutionContext = {
-        ...feeContext,
-        tokenInIsStable: feeContext?.tokenInIsStable
-          ?? (tokenIn ? isStableToken(tokenIn, chainConfig) : undefined),
-        tokenOutIsStable: feeContext?.tokenOutIsStable
-          ?? (tokenOut ? isStableToken(tokenOut, chainConfig) : undefined),
-      };
-      const resolved = resolveTieredFeeBps(effectiveCtx);
-      if (resolved !== null) return BigInt(resolved);
-    }
-    return BigInt(getProtocolFeeBps());
+    return resolveFeeBps(feeContext, tokenIn, tokenOut);
   }
 
   // ─── Calldata helpers (auto-select standard vs integrator ABI) ───────────────
@@ -364,6 +356,32 @@ function createSingleRouter(
       return buildSwapToNativeCalldata(tradeInfo, toAddress);
     },
 
+    getSwapWithPermitCalldata(tradeInfo, toAddress, permit) {
+      assertQuoteNotExpired(tradeInfo);
+      if (integratorId) {
+        throw new EmpxError(
+          ERROR_CODES.INVALID_INPUT,
+          "Permit calldata is not available for integrator-router swaps yet.",
+          false,
+          { integratorId }
+        );
+      }
+      return getSwapWithPermitCalldata(tradeInfo, toAddress, chainConfig, tradeInfo.fee, permit);
+    },
+
+    getSwapToNativeWithPermitCalldata(tradeInfo, toAddress, permit) {
+      assertQuoteNotExpired(tradeInfo);
+      if (integratorId) {
+        throw new EmpxError(
+          ERROR_CODES.INVALID_INPUT,
+          "Permit calldata is not available for integrator-router swaps yet.",
+          false,
+          { integratorId }
+        );
+      }
+      return getSwapToNativeWithPermitCalldata(tradeInfo, toAddress, chainConfig, tradeInfo.fee, permit);
+    },
+
     getWrapCalldata(tradeInfo) {
       return getWrapCalldata(tradeInfo, chainConfig.WRAPPED_NATIVE);
     },
@@ -374,6 +392,10 @@ function createSingleRouter(
 
     getApprovalCalldata(tokenAddress, amount) {
       return getApprovalCalldata(tokenAddress, chainConfig.ROUTER_ADDRESS, amount);
+    },
+
+    getApprovalCalldataForAmount(tokenAddress, options) {
+      return getApprovalCalldataForAmount(tokenAddress, chainConfig.ROUTER_ADDRESS, options);
     },
 
     async swap(amountIn, tokenIn, tokenOut, toAddress, maxSteps = 3, slippageBps = 200, feeContext) {
@@ -414,6 +436,26 @@ function createSingleRouter(
       }
 
       return { tradeInfo, calldata, swapType };
+    },
+
+    prepareSwap(amountIn, tokenIn, tokenOut, toAddress, maxSteps = 3, slippageBps = 200, feeContext) {
+      return router.swap(amountIn, tokenIn, tokenOut, toAddress, maxSteps, slippageBps, feeContext);
+    },
+
+    async executeSwap(amountIn, tokenIn, tokenOut, toAddress, maxSteps = 3, slippageBps = 200, feeContext) {
+      if (!_signer) {
+        throw new EmpxError(
+          ERROR_CODES.INVALID_INPUT,
+          "executeSwap requires createRouter(..., signer). Use prepareSwap() or swap() for calldata-only flows.",
+          false,
+          { chainId }
+        );
+      }
+
+      const prepared = await router.swap(amountIn, tokenIn, tokenOut, toAddress, maxSteps, slippageBps, feeContext);
+      const tx = await _signer.sendTransaction(prepared.calldata);
+      const receipt = await tx.wait();
+      return { ...prepared, hash: tx.hash, receipt };
     },
 
     getTokenPriceUSD(tokenAddress, maxSteps = 3) {
@@ -470,6 +512,8 @@ export function createRouters(
     const routerConfig: RouterConfig = {
       integratorId: config.integratorId,
       affiliate: config.affiliate,
+      protocolFeeBps: config.protocolFeeBps,
+      pairTypeFees: config.pairTypeFees,
     };
 
     return [chainId, createSingleRouter(chainId, provider, routerConfig)] as const;
